@@ -2,8 +2,8 @@
 import { Product, StoreInfo, Table } from './types';
 
 export const STORE_INFO: StoreInfo = {
-  name: 'Delícias Caseiras',
-  slogan: 'Criações deliciosas com um sorriso ✨',
+  name: 'Ju Delícias Caseiras',
+  slogan: 'CRIAÇÕES DELICIOSAS COM UM SORRISO ✨',
   hours: 'Aberto de 6h às 22h | Todos os dias',
   whatsapp: '5585997644326'
 };
@@ -29,12 +29,12 @@ export const INITIAL_TABLES: Table[] = [
 export const MENU_ITEMS: Product[] = [
   {
     id: 'cb1',
-    name: 'Combo Café Completo',
-    description: '1 Café Expresso + 1 Pão de Queijo + 1 Suco de Laranja.',
-    price: 16.90,
+    name: 'Combo Café com Afeto',
+    description: '1 Café Especial + 1 Fatia de Bolo Caseiro + Pão de Queijo.',
+    price: 18.90,
     category: 'Combos',
     image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop',
-    savings: 'Economize R$ 3,10',
+    savings: 'Economize R$ 4,00',
     isAvailable: true
   }
 ];

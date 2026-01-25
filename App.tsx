@@ -9,6 +9,26 @@ import { Product, CartItem, Table, Order, Category, Coupon, StoreConfig } from '
 import { supabase } from './lib/supabase';
 import { CloseIcon } from './components/Icons';
 
+const Footer: React.FC = () => (
+  <footer className="w-full py-16 px-6 bg-white border-t border-gray-100 flex flex-col items-center text-center mt-12">
+    <div className="bg-[#FF8000] w-20 h-1.5 rounded-full mb-10"></div>
+    
+    <div className="mb-8">
+      <h4 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900 leading-none">Ju Delícias Caseiras</h4>
+      <p className="text-[8px] font-black uppercase text-[#666666] tracking-[0.3em] mt-2">{STORE_INFO.slogan}</p>
+    </div>
+
+    <div className="flex flex-col items-center gap-4 mb-10">
+      <div className="flex items-center gap-3 text-[#FF8000] bg-orange-50 px-6 py-3 rounded-2xl border border-orange-100">
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <span className="text-sm font-black tracking-tight leading-none">(85) 99764-4326</span>
+      </div>
+    </div>
+    
+    <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">© {new Date().getFullYear()} • Sabor e Qualidade.</p>
+  </footer>
+);
+
 const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -89,7 +109,7 @@ const App: React.FC = () => {
           const merged = [...INITIAL_TABLES];
           tableRes.data?.forEach((dbT: any) => {
             const idx = merged.findIndex(t => t.id === dbT.id);
-            // Fix: Changed 'current_order' to 'currentOrder' to match the 'Table' interface
+            // Fix: Changed current_order to currentOrder to match the Table interface
             if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, currentOrder: dbT.current_order };
           });
           return merged;
@@ -113,7 +133,7 @@ const App: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, (payload) => {
         const newRec = payload.new as any;
         if (!newRec) return;
-        // Fix: Changed 'current_order' to 'currentOrder' to match the 'Table' interface
+        // Fix: Changed current_order to currentOrder to match the Table interface
         setTables(curr => curr.map(t => t.id === newRec.id ? { id: newRec.id, status: newRec.status, currentOrder: newRec.current_order } : t));
         
         if (isAdmin && newRec.status === 'occupied' && newRec.current_order) {
@@ -166,14 +186,14 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative" onClick={handleUnlockAudio}>
       <HeaderComp />
-      {!isLoggedIn && <button onClick={() => setShowLogin(true)} className="absolute top-4 right-4 z-50 text-[10px] font-black text-white/40 bg-gray-800/20 px-3 py-1.5 rounded-full uppercase tracking-widest backdrop-blur-sm border border-white/10">Admin</button>}
+      {!isLoggedIn && <button onClick={() => setShowLogin(true)} className="absolute top-4 right-4 z-50 text-[10px] font-black text-white/40 bg-black/5 px-4 py-2 rounded-full uppercase tracking-widest backdrop-blur-sm border border-white/10 shadow-lg">Login Admin</button>}
 
       {isAdmin && isLoggedIn && activeAlert && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-md px-6 animate-in slide-in-from-top duration-700">
-          <div className="bg-gray-800 border-orange-500 text-white p-5 rounded-[2.5rem] shadow-2xl border-4 flex items-center gap-5">
-            <div className="bg-orange-500 text-white w-12 h-12 rounded-xl flex items-center justify-center font-black shrink-0 shadow-lg">🔔</div>
+          <div className="bg-gray-900 border-[#FF8000] text-white p-5 rounded-[2.5rem] shadow-2xl border-4 flex items-center gap-5">
+            <div className="bg-[#FF8000] text-white w-12 h-12 rounded-xl flex items-center justify-center font-black shrink-0 shadow-lg">🔔</div>
             <div className="flex-1 font-black">
-              <h4 className="text-[10px] uppercase text-orange-500 tracking-widest">{activeAlert.msg}</h4>
+              <h4 className="text-[10px] uppercase text-[#FF8000] tracking-widest">{activeAlert.msg}</h4>
               <p className="text-lg italic uppercase tracking-tighter leading-none">{activeAlert.type} #{activeAlert.id}</p>
             </div>
             <button onClick={() => setActiveAlert(null)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"><CloseIcon size={18}/></button>
@@ -181,7 +201,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 -mt-8 relative z-20 flex-1 pb-40">
+      <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 -mt-10 relative z-20 flex-1 pb-40">
         {isAdmin && isLoggedIn ? (
           <AdminPanel 
             tables={tables} menuItems={menuItems} categories={categories} audioEnabled={audioEnabled} onToggleAudio={() => setAudioEnabled(!audioEnabled)} onTestSound={() => notificationSound.current?.play()}
@@ -207,55 +227,56 @@ const App: React.FC = () => {
           <>
             {isStoreClosed ? (
               <div className="flex flex-col items-center justify-center pt-24 pb-32 text-center animate-in fade-in zoom-in duration-700">
-                <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-orange-500 max-w-md w-full relative overflow-hidden">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-100 rounded-full opacity-50 blur-2xl"></div>
-                  <div className="bg-orange-500 text-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl ring-8 ring-orange-100">
+                <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-[#FF8000] max-w-md w-full relative overflow-hidden">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#FF8000]/10 rounded-full opacity-50 blur-2xl"></div>
+                  <div className="bg-[#FF8000] text-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl ring-8 ring-orange-50">
                     <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
-                  <h2 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 mb-2">Loja Fechada</h2>
-                  <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest mb-8">No momento não estamos aceitando pedidos</p>
+                  <h2 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900 mb-2 leading-none">Pausa no Sabor</h2>
+                  <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest mb-8">Estamos preparando novas delícias!</p>
                   
                   <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-8">
-                    <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Horário de Funcionamento</p>
-                    <p className="text-sm font-black text-gray-800 uppercase italic tracking-tight">{STORE_INFO.hours}</p>
+                    <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Funcionamos às:</p>
+                    <p className="text-sm font-black text-gray-900 uppercase italic tracking-tight">{STORE_INFO.hours}</p>
                   </div>
                   
-                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-green-500 text-white px-8 py-5 rounded-[2rem] font-black uppercase text-[10px] shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-green-600 text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[10px] shadow-lg hover:scale-105 active:scale-95 transition-all">
                     <span>Falar no WhatsApp</span>
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                   </a>
                 </div>
               </div>
             ) : (
               <>
                 {storeConfig.statusPanelEnabled && activeStatusOrders.length > 0 && (
-                  <div className="bg-gray-800 text-white p-6 rounded-[2.5rem] mb-10 shadow-2xl border-4 border-orange-500 overflow-hidden relative">
-                    <div className="flex justify-between items-center mb-4">
-                       <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-500">Acompanhe seu Pedido</h3>
-                       <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span><span className="text-[8px] uppercase font-black opacity-50">Ao Vivo</span></div>
+                  <div className="bg-gray-900 text-white p-7 rounded-[3rem] mb-12 shadow-2xl border-4 border-[#FF8000] overflow-hidden relative">
+                    <div className="flex justify-between items-center mb-6">
+                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF8000]">Pedidos Prontos e Preparando</h3>
+                       <div className="flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-full"><span className="w-1.5 h-1.5 bg-[#FF8000] rounded-full animate-pulse shadow-[0_0_8px_#FF8000]"></span><span className="text-[9px] uppercase font-black opacity-70 tracking-widest italic">Ao Vivo</span></div>
                     </div>
-                    <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
+                    <div className="flex overflow-x-auto gap-5 no-scrollbar pb-2">
                       {activeStatusOrders.map(order => (
-                        <div key={order.id} className={`shrink-0 w-44 p-4 rounded-2xl border-2 ${order.status === 'ready' ? 'bg-green-600 border-white animate-pulse' : 'bg-gray-900 border-gray-700'}`}>
-                           <div className="flex justify-between items-start mb-1">
-                              <span className="text-[8px] font-black uppercase opacity-60">#{order.id}</span>
-                              <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10`}>{order.status}</span>
+                        <div key={order.id} className={`shrink-0 w-48 p-5 rounded-3xl border-2 ${order.status === 'ready' ? 'bg-green-600 border-white animate-pulse' : 'bg-gray-800 border-gray-700'}`}>
+                           <div className="flex justify-between items-start mb-2">
+                              <span className="text-[9px] font-black uppercase opacity-60">#{order.id}</span>
+                              <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full bg-white/10`}>{order.status}</span>
                            </div>
-                           <p className="font-black text-xs uppercase truncate">{order.customerName}</p>
-                           <p className="text-[7px] font-bold uppercase opacity-40 mt-1">{order.tableId >= 950 ? 'Retirada' : `Mesa ${order.tableId}`}</p>
+                           <p className="font-black text-[13px] uppercase truncate text-white">{order.customerName}</p>
+                           <p className="text-[8px] font-bold uppercase opacity-40 mt-1 tracking-widest">{order.tableId >= 950 ? 'Balcão' : `Mesa ${order.tableId}`}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                <div className="flex overflow-x-auto gap-2.5 pb-8 no-scrollbar pt-4">
+                
+                <div className="flex overflow-x-auto gap-3 pb-10 no-scrollbar pt-2">
                   {['Todos', ...categories.map(c => c.name)].map(cat => (
-                    <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all shadow-sm ${selectedCategory === cat ? 'bg-orange-500 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-100'}`}>{cat}</button>
+                    <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-8 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.15em] transition-all shadow-md active:scale-95 ${selectedCategory === cat ? 'bg-[#FF8000] text-white shadow-orange-500/20' : 'bg-white text-gray-500 border border-gray-100 hover:border-[#FF8000]/30'}`}>{cat}</button>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                   {menuItems.filter(i => selectedCategory === 'Todos' || i.category === selectedCategory).map(item => <MenuItem key={item.id} product={item} activeCoupons={activeCoupons} onAdd={(p) => setCartItems(prev => { const ex = prev.find(i => i.id === p.id); if (ex) return prev.map(i => i.id === p.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, { ...p, quantity: 1 }]; })} />)}
                 </div>
               </>
@@ -264,37 +285,40 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {!isAdmin && <Footer />}
+
       {showLogin && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
-          <div className="bg-white p-10 rounded-[3.5rem] w-full max-w-sm text-center animate-in zoom-in shadow-2xl">
-            <h2 className="text-2xl font-black mb-8 italic uppercase tracking-tighter text-orange-600">Painel Administrativo</h2>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-lg">
+          <div className="bg-white p-12 rounded-[4rem] w-full max-w-sm text-center animate-in zoom-in shadow-2xl border-t-8 border-[#FF8000]">
+            <h2 className="text-3xl font-black mb-10 italic uppercase tracking-tighter text-gray-900">Admin Ju</h2>
             <form onSubmit={async (e) => {
               e.preventDefault(); setIsLoadingLogin(true);
               const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPass });
               if (!error && data.session) { setIsLoggedIn(true); setIsAdmin(true); setShowLogin(false); fetchData(); }
-              else alert('Erro ao entrar.');
+              else alert('Credenciais inválidas.');
               setIsLoadingLogin(false);
-            }} className="space-y-4">
-              <input type="email" placeholder="E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-orange-500 transition-all" required />
-              <input type="password" placeholder="SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-orange-500 transition-all" required />
-              <button type="submit" disabled={isLoadingLogin} className="w-full bg-orange-500 text-white font-black py-5 rounded-2xl uppercase text-[10px] shadow-lg">Entrar</button>
-              <button type="button" onClick={() => setShowLogin(false)} className="text-[10px] font-black text-gray-400 uppercase mt-2">Voltar</button>
+            }} className="space-y-5">
+              <input type="email" placeholder="E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF8000] transition-all shadow-inner" required />
+              <input type="password" placeholder="SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF8000] transition-all shadow-inner" required />
+              <button type="submit" disabled={isLoadingLogin} className="w-full bg-gray-900 text-[#FF8000] font-black py-6 rounded-2xl uppercase text-[11px] tracking-[0.2em] shadow-xl hover:scale-105 transition-all">Acessar Painel</button>
+              <button type="button" onClick={() => setShowLogin(false)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-4">Fechar</button>
             </form>
           </div>
         </div>
       )}
 
       {!isAdmin && !isStoreClosed && cartItems.length > 0 && (
-        <div className="fixed bottom-8 left-0 right-0 flex justify-center px-6 z-40">
-          <button onClick={() => setIsCartOpen(true)} className="w-full max-w-md bg-gray-800 text-white rounded-[2.5rem] p-5 flex items-center justify-between shadow-2xl ring-4 ring-orange-500/30 active:scale-95 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="bg-orange-500 text-white w-9 h-9 flex items-center justify-center rounded-2xl text-xs font-black">{cartItems.reduce((a,b)=>a+b.quantity,0)}</div>
-              <span className="font-black text-xs uppercase tracking-widest">Minha Sacola</span>
+        <div className="fixed bottom-10 left-0 right-0 flex justify-center px-8 z-40">
+          <button onClick={() => setIsCartOpen(true)} className="w-full max-w-lg bg-gray-900 text-white rounded-[3rem] p-6 flex items-center justify-between shadow-2xl ring-8 ring-[#FF8000]/20 active:scale-95 transition-all animate-in slide-in-from-bottom duration-500">
+            <div className="flex items-center gap-5">
+              <div className="bg-[#FF8000] text-white w-12 h-12 flex items-center justify-center rounded-2xl text-[14px] font-black shadow-lg shadow-orange-500/30">{cartItems.reduce((a,b)=>a+b.quantity,0)}</div>
+              <span className="font-black text-[12px] uppercase tracking-[0.15em]">Sacola Caseira</span>
             </div>
-            <span className="font-black text-orange-500 text-xl italic">R$ {cartItems.reduce((a,b)=>a+(b.price*b.quantity),0).toFixed(2).replace('.', ',')}</span>
+            <span className="font-black text-[#FF8000] text-2xl italic tracking-tighter pr-4">R$ {cartItems.reduce((a,b)=>a+(b.price*b.quantity),0).toFixed(2).replace('.', ',')}</span>
           </button>
         </div>
       )}
+      
       {!isAdmin && <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cartItems} onUpdateQuantity={(id, d) => setCartItems(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + d)} : i))} onRemove={id => setCartItems(p => p.filter(i => i.id !== id))} onAdd={() => {}} onPlaceOrder={async (ord) => {
         let tid = ord.tableId; if (tid < 0) { const range = tid === -900 ? [900, 949] : [950, 999]; const free = tables.find(t => t.id >= range[0] && t.id <= range[1] && t.status === 'free'); tid = free?.id || range[0]; }
         const { error } = await supabase.from('tables').upsert({ id: tid, status: 'occupied', current_order: { ...ord, tableId: tid } });

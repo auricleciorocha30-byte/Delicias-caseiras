@@ -12,7 +12,6 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
   const isCombo = product.category === 'Combos';
   const isAvailable = product.isAvailable !== false;
 
-  // Encontra todos os cupons aplicáveis para este item e seleciona o de MAIOR desconto
   const validCoupons = activeCoupons.filter(c => {
     if (!c.isActive) return false;
     if (c.scopeType === 'all') return true;
@@ -28,57 +27,55 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
     ? validCoupons.reduce((prev, curr) => (curr.percentage > prev.percentage) ? curr : prev)
     : null;
 
-  // Calcula o valor real da economia baseada no cupom
   const savingsValue = applicableCoupon 
     ? (product.price * (applicableCoupon.percentage / 100)) 
     : 0;
 
   return (
-    <div className={`group bg-white rounded-[2rem] shadow-md border overflow-hidden flex flex-col relative transition-all duration-300 ${!isAvailable ? 'opacity-70' : 'hover:shadow-2xl hover:-translate-y-1'} ${isCombo ? 'border-orange-500 border-2' : 'border-gray-100'}`}>
+    <div className={`group bg-white rounded-[2.5rem] shadow-sm border overflow-hidden flex flex-col relative transition-all duration-300 ${!isAvailable ? 'opacity-70' : 'hover:shadow-2xl hover:-translate-y-1'} ${isCombo ? 'border-[#FF8000] border-2 shadow-orange-100' : 'border-gray-100'}`}>
       {isCombo && isAvailable && (
-        <div className="absolute top-4 left-4 z-10 bg-gray-800 text-orange-500 text-[10px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg">
-          Combo 🔥
+        <div className="absolute top-5 left-5 z-10 bg-gray-900 text-[#FF8000] text-[10px] font-black uppercase px-4 py-2 rounded-full shadow-lg tracking-widest">
+          Combo Jú 🔥
         </div>
       )}
 
       {applicableCoupon && isAvailable && (
-        <div className="absolute top-4 right-4 z-10 bg-green-600 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1 border-b-2 border-green-800">
+        <div className="absolute top-5 right-5 z-10 bg-green-600 text-white text-[9px] font-black uppercase px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5 border-b-4 border-green-800 tracking-widest">
           <span>{applicableCoupon.percentage}% OFF</span> 🎫
         </div>
       )}
 
       {!isAvailable && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-6 text-center">
-          <div className="bg-red-600 text-white font-black text-[12px] uppercase tracking-[0.2em] px-6 py-3 rounded-full shadow-2xl mb-2 animate-pulse">
-            Indisponível 🚫
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-8 text-center">
+          <div className="bg-red-600 text-white font-black text-[12px] uppercase tracking-[0.25em] px-8 py-4 rounded-full shadow-2xl mb-2 animate-pulse">
+            Esgotado 🚫
           </div>
-          <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest">Aguardando Reposição</p>
+          <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.2em]">Reposição em breve</p>
         </div>
       )}
       
-      <div className="aspect-[4/3] overflow-hidden relative bg-gray-100">
+      <div className="aspect-[4/3] overflow-hidden relative bg-gray-50">
         <img 
           src={product.image} 
           alt={product.name} 
-          className={`w-full h-full object-cover transition-transform duration-700 ${!isAvailable ? 'grayscale scale-105' : 'group-hover:scale-110'}`}
+          className={`w-full h-full object-cover transition-transform duration-1000 ${!isAvailable ? 'grayscale scale-105' : 'group-hover:scale-110'}`}
         />
         {isAvailable && (
-          <div className={`absolute bottom-3 right-3 ${isCombo ? 'bg-gray-800 text-orange-500' : 'bg-orange-500 text-white'} font-black px-4 py-1.5 rounded-full text-sm shadow-xl`}>
+          <div className={`absolute bottom-4 right-4 ${isCombo ? 'bg-gray-900 text-[#FF8000]' : 'bg-[#FF8000] text-white'} font-black px-5 py-2 rounded-2xl text-[15px] shadow-2xl tracking-tighter italic border-2 border-white/20`}>
             R$ {product.price.toFixed(2).replace('.', ',')}
           </div>
         )}
       </div>
       
-      <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-extrabold text-gray-900 text-xl mb-1 leading-tight">{product.name}</h3>
-        <p className="text-gray-500 text-xs mb-5 flex-1 line-clamp-2 leading-relaxed">{product.description}</p>
+      <div className="p-8 flex flex-col flex-1">
+        <h3 className="font-extrabold text-gray-900 text-xl mb-2 leading-none uppercase italic tracking-tighter">{product.name}</h3>
+        <p className="text-[#666666] text-xs mb-6 flex-1 line-clamp-3 leading-relaxed font-medium">{product.description}</p>
         
-        {/* Selo de Economia Dinâmico: Só aparece se houver cupom ativo */}
         {savingsValue > 0 && isAvailable && (
-          <div className="mb-4">
-            <span className="bg-green-100 text-green-700 text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1.5 w-fit">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              Economize R$ {savingsValue.toFixed(2).replace('.', ',')}
+          <div className="mb-5">
+            <span className="bg-green-100 text-green-700 text-[9px] font-black px-4 py-2 rounded-xl uppercase tracking-widest flex items-center gap-2 w-fit border border-green-200">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Poupe R$ {savingsValue.toFixed(2).replace('.', ',')}
             </span>
           </div>
         )}
@@ -86,13 +83,13 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
         <button 
           onClick={() => isAvailable && onAdd(product)}
           disabled={!isAvailable}
-          className={`w-full ${!isAvailable ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : isCombo ? 'bg-gray-800 text-white' : 'bg-orange-500 text-white'} font-black py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${isAvailable ? 'hover:brightness-110' : ''}`}
+          className={`w-full ${!isAvailable ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : isCombo ? 'bg-gray-900 text-white' : 'bg-[#FF8000] text-white'} font-black py-5 rounded-[1.5rem] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl ${isAvailable ? 'hover:brightness-110' : ''}`}
         >
-          <span className="text-sm uppercase tracking-widest">
-            {!isAvailable ? 'Produto em Falta' : isCombo ? 'Escolher Combo' : 'Adicionar'}
+          <span className="text-[11px] uppercase tracking-[0.2em]">
+            {!isAvailable ? 'Aguarde Reposição' : isCombo ? 'Escolher Combo' : 'Adicionar'}
           </span>
           {isAvailable && (
-            <svg width="20" height="20" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="22" height="22" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
             </svg>
           )}

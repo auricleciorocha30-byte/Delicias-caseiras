@@ -9,7 +9,7 @@ const Header: React.FC = () => {
       <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF7F11]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
       
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto">
-        {/* Container do Logo Ju Fitness */}
+        {/* Container do Logo Ju Marmitas Caseiras */}
         <div className="mb-6 flex flex-col items-center">
           <div className="bg-[#FF7F11] w-24 h-24 rounded-full shadow-lg flex items-center justify-center p-4 mb-2">
             <svg viewBox="0 0 100 100" className="w-full h-full text-white fill-current">
@@ -20,16 +20,18 @@ const Header: React.FC = () => {
             </svg>
           </div>
           <h2 className="text-5xl font-extrabold text-[#1A1A1A] tracking-tighter leading-none mb-0">Ju</h2>
-          <span className="text-lg font-bold text-[#6C7A1D] uppercase tracking-widest -mt-1">fitness</span>
+          <span className="text-lg font-bold text-[#6C7A1D] uppercase tracking-widest -mt-1">Marmitas Caseiras</span>
         </div>
         
-        {/* Título Principal Estilizado */}
-        <div className="mb-8">
-          <h1 className="text-5xl md:text-6xl font-black text-[#FF7F11] italic uppercase tracking-tighter leading-[0.85] mb-2 drop-shadow-sm">
+        {/* Título Principal Estilizado com Espaçamento Ajustado */}
+        <div className="mb-10">
+          <h1 className="text-6xl md:text-7xl font-black text-[#FF7F11] italic uppercase tracking-tighter leading-[0.95] mb-0 drop-shadow-sm">
             MARMITA <br/> 
-            <span className="text-[#6C7A1D] lowercase font-serif italic text-4xl normal-case -mt-4 block translate-x-4">fit</span>
+            <span className="text-[#6C7A1D] lowercase font-serif italic text-4xl md:text-5xl normal-case block translate-x-12 -mt-3 drop-shadow-none">
+              fit
+            </span>
           </h1>
-          <p className="text-[#1A1A1A] font-bold text-xs mt-2 uppercase tracking-wide">
+          <p className="text-[#1A1A1A] font-bold text-xs mt-6 uppercase tracking-widest opacity-80">
             Saúde que cabe no potinho.
           </p>
         </div>

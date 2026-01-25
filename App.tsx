@@ -14,7 +14,7 @@ const Footer: React.FC = () => (
     <div className="bg-[#FF7F11] w-20 h-1.5 rounded-full mb-10"></div>
     
     <div className="mb-8">
-      <h4 className="text-3xl font-black italic uppercase tracking-tighter text-[#1A1A1A] leading-none">Ju Fitness</h4>
+      <h4 className="text-3xl font-black italic uppercase tracking-tighter text-[#1A1A1A] leading-none">Ju Marmitas Caseiras</h4>
       <p className="text-[9px] font-black uppercase text-[#6C7A1D] tracking-[0.3em] mt-2">{STORE_INFO.slogan}</p>
     </div>
 
@@ -288,7 +288,7 @@ const App: React.FC = () => {
       {showLogin && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-lg">
           <div className="bg-white p-12 rounded-[4rem] w-full max-w-sm text-center animate-in zoom-in shadow-2xl border-t-8 border-[#FF7F11]">
-            <h2 className="text-3xl font-black mb-10 italic uppercase tracking-tighter text-[#1A1A1A]">Admin Ju Fitness</h2>
+            <h2 className="text-3xl font-black mb-10 italic uppercase tracking-tighter text-[#1A1A1A]">Admin Ju Marmitas Caseiras</h2>
             <form onSubmit={async (e) => {
               e.preventDefault(); setIsLoadingLogin(true);
               const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPass });

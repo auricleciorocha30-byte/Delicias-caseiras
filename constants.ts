@@ -2,7 +2,7 @@
 import { Product, StoreInfo, Table } from './types';
 
 export const STORE_INFO: StoreInfo = {
-  name: 'Ju Fitness',
+  name: 'Ju Marmitas Caseiras',
   slogan: 'SAÚDE QUE CABE NO POTINHO 🥗',
   hours: 'Aberto de 08h às 20h | Seg a Sáb',
   whatsapp: '5585997644326'

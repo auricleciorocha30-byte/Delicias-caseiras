@@ -2,9 +2,9 @@
 import { Product, StoreInfo, Table } from './types';
 
 export const STORE_INFO: StoreInfo = {
-  name: 'Ju Delícias Caseiras',
-  slogan: 'CRIAÇÕES DELICIOSAS COM UM SORRISO ✨',
-  hours: 'Aberto de 6h às 22h | Todos os dias',
+  name: 'Ju Fitness',
+  slogan: 'SAÚDE QUE CABE NO POTINHO 🥗',
+  hours: 'Aberto de 08h às 20h | Seg a Sáb',
   whatsapp: '5585997644326'
 };
 
@@ -28,13 +28,32 @@ export const INITIAL_TABLES: Table[] = [
 
 export const MENU_ITEMS: Product[] = [
   {
-    id: 'cb1',
-    name: 'Combo Café com Afeto',
-    description: '1 Café Especial + 1 Fatia de Bolo Caseiro + Pão de Queijo.',
-    price: 18.90,
-    category: 'Combos',
-    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop',
-    savings: 'Economize R$ 4,00',
+    id: 'kit1',
+    name: 'Plano Semanal (Opção 1)',
+    description: '7 Marmitas Fit variadas. Ideal para manter o foco durante a semana útil.',
+    price: 84.99,
+    category: 'Kits & Planos',
+    image: 'https://images.unsplash.com/photo-1543353071-873f17a7a088?w=400&h=300&fit=crop',
+    savings: 'Sai por R$ 12,14 cada',
+    isAvailable: true
+  },
+  {
+    id: 'kit2',
+    name: 'Plano Mensal (Opção 2)',
+    description: '30 Marmitas Fit. O melhor custo-benefício para sua rotina saudável.',
+    price: 319.99,
+    category: 'Kits & Planos',
+    image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop',
+    savings: 'Economia de R$ 45,00',
+    isAvailable: true
+  },
+  {
+    id: 'm1',
+    name: 'Marmita Frango com Batata Doce',
+    description: 'Frango grelhado, purê de batata doce e mix de legumes no vapor.',
+    price: 18.00,
+    category: 'Marmitas Fit',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
     isAvailable: true
   }
 ];

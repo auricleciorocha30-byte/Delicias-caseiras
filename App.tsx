@@ -110,7 +110,7 @@ const App: React.FC = () => {
       setIsLoggedIn(true);
       fetchData();
     } else {
-      alert('Credenciais incorretas para Ju Marmitas.');
+      alert('Credenciais incorretas para Ju Marmitas Caseiras.');
     }
     setIsLoadingLogin(false);
   };
@@ -123,7 +123,6 @@ const App: React.FC = () => {
       tables_enabled: false,
       delivery_enabled: updatedCfg.deliveryEnabled,
       counter_enabled: updatedCfg.counterEnabled,
-      // Fix: Use correct camelCase property statusPanelEnabled instead of snake_case status_panel_enabled
       status_panel_enabled: updatedCfg.statusPanelEnabled
     });
   };
@@ -182,7 +181,11 @@ const App: React.FC = () => {
             const free = tables.find(t => t.id >= range[0] && t.id <= range[1] && t.status === 'free'); 
             tid = free?.id || range[0]; 
           }
-          const { error } = await supabase.from('tables').upsert({ id: tid, status: 'occupied', current_order: { ...ord, tableId: tid } });
+          const { error } = await supabase.from('tables').upsert({ 
+            id: tid, 
+            status: 'occupied', 
+            current_order: { ...ord, tableId: tid } 
+          });
           if (!error) { 
             setCartItems([]); 
             fetchData();
@@ -220,17 +223,26 @@ const App: React.FC = () => {
       <AdminPanel 
         tables={tables} menuItems={menuItems} categories={categories} audioEnabled={true} onToggleAudio={() => {}} onTestSound={() => {}}
         onUpdateTable={async (id, status, ord) => { 
-          if (status === 'free') await supabase.from('tables').update({ status: 'free', current_order: null }).eq('id', id);
-          else await supabase.from('tables').update({ status, current_order: ord }).eq('id', id);
-          fetchData();
+          const { error } = await supabase.from('tables').upsert({ 
+            id: id, 
+            status: status, 
+            current_order: ord || null 
+          });
+          if (!error) fetchData();
+          else console.error("Erro ao atualizar mesa/pedido:", error);
         }}
         onAddToOrder={() => {}}
         onRefreshData={() => fetchData()} 
         onLogout={async () => { await supabase.auth.signOut(); setIsLoggedIn(false); }}
         onSaveProduct={async (p) => { 
           await supabase.from('products').upsert({ 
-            id: p.id || 'p_'+Date.now(), name: p.name, price: p.price, category: p.category, 
-            image: p.image, is_available: p.isAvailable, description: p.description 
+            id: p.id || 'p_'+Date.now(), 
+            name: p.name, 
+            price: p.price, 
+            category: p.category, 
+            image: p.image, 
+            is_available: p.isAvailable, 
+            description: p.description 
           }); 
           fetchData();
         }}

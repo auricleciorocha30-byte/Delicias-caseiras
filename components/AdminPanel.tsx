@@ -83,11 +83,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const filteredMenu = menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const activeOrders = tables.filter(t => t.id >= 900 && t.status === 'occupied');
+  
+  // Agrupamento de Pedidos: Entregas (900-949) e Retiradas (950-999)
+  const deliveryOrders = tables.filter(t => t.id >= 900 && t.id <= 949 && t.status === 'occupied');
+  const takeawayOrders = tables.filter(t => t.id >= 950 && t.id <= 999 && t.status === 'occupied');
+  
   const selectedOrder = tables.find(t => t.id === selectedOrderId);
 
   return (
     <div className="w-full animate-in fade-in duration-500">
+      {/* Header Admin */}
       <div className="bg-[#1A1A1A] p-6 rounded-[3rem] shadow-2xl mb-8 flex flex-col md:flex-row justify-between items-center gap-6 border-b-8 border-[#FF7F11]">
         <div className="flex items-center gap-4">
           <div className="bg-[#FF7F11] p-3 rounded-2xl shadow-lg">
@@ -114,28 +119,64 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       </div>
 
       <div className="min-h-[60vh]">
+        {/* ABA DE PEDIDOS REFORMULADA */}
         {activeTab === 'delivery' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeOrders.map(t => (
-              <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[3rem] border-4 border-[#FF7F11] text-left relative overflow-hidden group shadow-xl transition-all hover:scale-[1.02]">
-                <div className="absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase bg-[#FF7F11] text-white">
-                  {t.id >= 950 ? 'Balcão' : 'Entrega'}
-                </div>
-                <h4 className="font-black text-lg uppercase truncate mb-1 text-[#1A1A1A]">{t.currentOrder?.customerName}</h4>
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Pedido #{t.currentOrder?.id}</p>
-                <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[9px] font-black px-4 py-1.5 rounded-full inline-block uppercase tracking-widest`}>
-                  {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
-                </div>
-              </button>
-            ))}
-            {activeOrders.length === 0 && (
-              <div className="col-span-full py-20 text-center opacity-20 grayscale">
-                <p className="font-black uppercase text-xl tracking-widest">Nenhum pedido ativo no momento</p>
+          <div className="space-y-12">
+            {/* Seção de Entregas */}
+            <div>
+              <div className="flex items-center gap-4 mb-6 ml-2">
+                <span className="text-2xl">🚚</span>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">Entregas a Domicílio</h3>
+                <span className="bg-[#FF7F11] text-white text-[10px] px-3 py-1 rounded-full font-black">{deliveryOrders.length}</span>
               </div>
-            )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {deliveryOrders.map(t => (
+                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[3rem] border-4 border-[#FF7F11] text-left relative overflow-hidden group shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase bg-[#FF7F11] text-white">Entrega</div>
+                    <h4 className="font-black text-lg uppercase truncate mb-1 text-[#1A1A1A]">{t.currentOrder?.customerName}</h4>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Pedido #{t.currentOrder?.id}</p>
+                    <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[9px] font-black px-4 py-1.5 rounded-full inline-block uppercase tracking-widest`}>
+                      {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
+                    </div>
+                  </button>
+                ))}
+                {deliveryOrders.length === 0 && (
+                  <div className="col-span-full py-10 text-center border-2 border-dashed rounded-[3rem] border-gray-200">
+                    <p className="font-black uppercase text-[10px] tracking-widest text-gray-400">Nenhuma entrega pendente</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Seção de Retiradas */}
+            <div>
+              <div className="flex items-center gap-4 mb-6 ml-2">
+                <span className="text-2xl">🏪</span>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">Retiradas na Loja</h3>
+                <span className="bg-[#6C7A1D] text-white text-[10px] px-3 py-1 rounded-full font-black">{takeawayOrders.length}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {takeawayOrders.map(t => (
+                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[3rem] border-4 border-[#6C7A1D] text-left relative overflow-hidden group shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase bg-[#6C7A1D] text-white">Retirada</div>
+                    <h4 className="font-black text-lg uppercase truncate mb-1 text-[#1A1A1A]">{t.currentOrder?.customerName}</h4>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Pedido #{t.currentOrder?.id}</p>
+                    <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[9px] font-black px-4 py-1.5 rounded-full inline-block uppercase tracking-widest`}>
+                      {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
+                    </div>
+                  </button>
+                ))}
+                {takeawayOrders.length === 0 && (
+                  <div className="col-span-full py-10 text-center border-2 border-dashed rounded-[3rem] border-gray-200">
+                    <p className="font-black uppercase text-[10px] tracking-widest text-gray-400">Nenhuma retirada pendente</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
+        {/* ABA DE CARDÁPIO */}
         {activeTab === 'menu' && (
           <div className="space-y-10">
             <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#FF7F11]">
@@ -155,7 +196,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
               <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Produtos</h3>
+                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Meus Produtos</h3>
                 <div className="flex gap-4 w-full md:w-auto">
                   <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="flex-1 md:w-64 bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none focus:border-[#FF7F11]" />
                   <button onClick={() => { setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true, description: '' }); setIsProductModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl hover:brightness-125 transition-all">+ Novo Produto</button>
@@ -178,6 +219,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
+        {/* ABA DE MARKETING */}
         {activeTab === 'marketing' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#6C7A1D]">
@@ -187,7 +229,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   {loyalty.isActive ? 'Ativado' : 'Desativado'}
                 </button>
               </div>
-              <div className="space-y-6 mb-10">
+              <div className="space-y-6">
                 <div>
                   <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Meta de Gasto R$</p>
                   <input type="number" value={loyalty.spendingGoal} onChange={e => handleUpdateLoyalty({ spendingGoal: Number(e.target.value) })} className="w-full bg-gray-50 border-2 p-5 rounded-2xl font-black text-xl outline-none focus:border-[#6C7A1D] transition-all" />
@@ -238,13 +280,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
+        {/* ABA DE SETUP */}
         {activeTab === 'setup' && (
           <div className="max-w-2xl mx-auto bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A] text-center">
-            <h3 className="text-2xl font-black italic uppercase mb-10">Status da Operação</h3>
+            <h3 className="text-2xl font-black italic uppercase mb-10">Abertura e Fechamento</h3>
             <div className="grid grid-cols-1 gap-4 mb-10 text-left">
                {[
-                 { id: 'deliveryEnabled', label: 'Habilitar Entrega', icon: '🚚' },
-                 { id: 'counterEnabled', label: 'Habilitar Retirada', icon: '🏪' }
+                 { id: 'deliveryEnabled', label: 'Aceitar Entregas', icon: '🚚' },
+                 { id: 'counterEnabled', label: 'Aceitar Retiradas', icon: '🏪' }
                ].map(service => (
                  <div key={service.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border">
                     <div className="flex items-center gap-4">
@@ -264,36 +307,102 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
       </div>
 
-      {/* Modal Produto com Descrição */}
+      {/* MODAL DE PRODUTO COM DESCRIÇÃO */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
-             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Novo'} Produto</h3>
+             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={20}/></button>
+             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Nova'} Marmita</h3>
              <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-5">
-                <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DO PRODUTO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11]" required />
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-400 ml-2 mb-2 block">Nome da Marmita</label>
+                  <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="EX: FRANGO COM BATATA DOCE" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11]" required />
+                </div>
                 
-                <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DETALHES DO PRODUTO (DESCRIÇÃO)" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11] h-32 resize-none" />
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-400 ml-2 mb-2 block">Detalhes do Produto (Descrição)</label>
+                  <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCREVA OS INGREDIENTES, PESO, ETC..." className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11] h-32 resize-none" />
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none" required />
-                  <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none">
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
+                  <div>
+                    <label className="text-[9px] font-black uppercase text-gray-400 ml-2 mb-2 block">Preço (R$)</label>
+                    <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="0,00" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none focus:border-[#FF7F11]" required />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black uppercase text-gray-400 ml-2 mb-2 block">Categoria</label>
+                    <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11]">
+                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none" />
+
+                <div>
+                  <label className="text-[9px] font-black uppercase text-gray-400 ml-2 mb-2 block">URL da Imagem</label>
+                  <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="https://..." className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none focus:border-[#FF7F11]" />
+                </div>
                 
-                <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-2xl">
+                <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-2xl border">
                    <input type="checkbox" checked={editingProduct?.isAvailable} onChange={e => setEditingProduct({...editingProduct, isAvailable: e.target.checked})} className="w-6 h-6 rounded-lg accent-[#FF7F11]" />
-                   <label className="text-[10px] font-black uppercase">Disponível para venda</label>
+                   <label className="text-[10px] font-black uppercase tracking-widest">Disponível no Cardápio</label>
                 </div>
-                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Salvar Marmita</button>
+                
+                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl active:scale-95 transition-all">Salvar Marmita</button>
              </form>
           </div>
         </div>
       )}
 
-      {/* Modal Detalhes do Pedido */}
+      {/* MODAL DE CUPOM COM ESCOPO */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
+          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
+             <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={20}/></button>
+             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">Configurar Novo Cupom</h3>
+             <form onSubmit={async (e) => {
+               e.preventDefault();
+               await supabase.from('coupons').insert([{ 
+                 code: editingCoupon.code.toUpperCase(), 
+                 percentage: editingCoupon.percentage, 
+                 is_active: true, 
+                 scope_type: editingCoupon.scopeType, 
+                 scope_value: editingCoupon.scopeValue 
+               }]);
+               setIsCouponModalOpen(false);
+               fetchMarketing();
+             }} className="space-y-6">
+                <input placeholder="CÓDIGO (EX: JU10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
+                <input type="number" placeholder="DESCONTO (%)" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black outline-none focus:border-[#FF7F11]" required />
+                
+                <div className="bg-gray-50 p-6 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Aonde este cupom funciona?</p>
+                  <div className="flex gap-2 mb-4">
+                    {(['all', 'category', 'product'] as const).map(type => (
+                      <button key={type} type="button" onClick={() => setEditingCoupon({...editingCoupon, scopeType: type, scopeValue: ''})} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${editingCoupon?.scopeType === type ? 'bg-[#FF7F11] text-white border-[#FF7F11]' : 'bg-white border-gray-100'}`}>
+                        {type === 'all' ? 'Tudo' : type === 'category' ? 'Categorias' : 'Produtos'}
+                      </button>
+                    ))}
+                  </div>
+                  {editingCoupon?.scopeType !== 'all' && (
+                    <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-white rounded-xl border no-scrollbar">
+                      {(editingCoupon?.scopeType === 'category' ? categories : menuItems).map((item: any) => {
+                        const isSelected = (editingCoupon?.scopeValue || '').split(',').includes(item.id || item.name);
+                        return (
+                          <button key={item.id || item.name} type="button" onClick={() => setEditingCoupon({...editingCoupon, scopeValue: toggleScopeValue(editingCoupon.scopeValue, item.id || item.name)})} className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${isSelected ? 'border-[#FF7F11] bg-[#FF7F11]/10' : 'border-gray-50 hover:border-gray-200'}`}>
+                            {item.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl active:scale-95 transition-all">Ativar Cupom</button>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE DETALHES DO PEDIDO */}
       {selectedOrderId && selectedOrder && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setSelectedOrderId(null)} />
@@ -301,13 +410,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex justify-between items-start mb-8">
                  <div>
                     <h3 className="text-3xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">Pedido de {selectedOrder.currentOrder?.customerName}</h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">ID: #{selectedOrder.currentOrder?.id} • {selectedOrder.id >= 950 ? 'Retirada' : 'Entrega'}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">
+                      ID: #{selectedOrder.currentOrder?.id} • {selectedOrder.id >= 950 ? 'Retirada na Loja' : 'Entrega Domicílio'}
+                    </p>
                  </div>
                  <button onClick={() => setSelectedOrderId(null)} className="p-4 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><CloseIcon size={24}/></button>
               </div>
 
               <div className="flex-1 space-y-8">
                  <div className="bg-gray-50 p-8 rounded-[2.5rem] border-2 border-gray-100">
+                    <p className="text-[9px] font-black uppercase text-gray-400 mb-4 ml-2">Atualizar Status</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                        {(['pending', 'preparing', 'ready', 'delivered'] as OrderStatus[]).map(s => (
                           <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-4 rounded-2xl text-[9px] font-black uppercase border-4 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-[#FF7F11] text-white border-[#1A1A1A] shadow-lg' : 'bg-white text-gray-400 border-transparent hover:border-gray-200'}`}>
@@ -318,10 +430,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                  </div>
 
                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Itens Solicitados</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Marmitas Solicitadas</h4>
                     {selectedOrder.currentOrder?.items.map((item, idx) => (
                        <div key={idx} className="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100">
-                          <img src={item.image} className="w-16 h-16 rounded-2xl object-cover" />
+                          <img src={item.image} className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
                           <div className="flex-1">
                              <p className="font-black text-sm uppercase text-[#1A1A1A]">{item.name}</p>
                              <p className="text-[10px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p>
@@ -333,18 +445,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                  {selectedOrder.currentOrder?.address && (
                    <div className="bg-[#1A1A1A] p-8 rounded-3xl text-white">
-                      <p className="text-[9px] font-black uppercase text-[#FF7F11] mb-2 tracking-widest">Endereço de Entrega</p>
-                      <p className="text-sm font-bold uppercase">{selectedOrder.currentOrder.address}</p>
+                      <p className="text-[9px] font-black uppercase text-[#FF7F11] mb-2 tracking-widest">Endereço para Entrega</p>
+                      <p className="text-sm font-bold uppercase leading-relaxed">{selectedOrder.currentOrder.address}</p>
+                   </div>
+                 )}
+
+                 {selectedOrder.currentOrder?.customerPhone && (
+                   <div className="flex items-center justify-between p-6 bg-[#6C7A1D]/10 rounded-3xl border border-[#6C7A1D]/20">
+                     <div>
+                       <p className="text-[9px] font-black uppercase text-[#6C7A1D] mb-1">WhatsApp Cliente</p>
+                       <p className="text-sm font-black text-[#1A1A1A] tracking-tighter">{selectedOrder.currentOrder.customerPhone}</p>
+                     </div>
+                     <a href={`https://wa.me/${selectedOrder.currentOrder.customerPhone.replace(/\D/g,'')}`} target="_blank" rel="noopener" className="bg-[#6C7A1D] text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.438 9.889-9.886.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.89 4.44-9.892 9.886-.001 2.125.593 3.456 1.574 5.111l-.973 3.548 3.638-.954z"/></svg>
+                     </a>
                    </div>
                  )}
               </div>
 
               <div className="pt-10 mt-10 border-t flex justify-between items-center">
                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Final</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Final do Pedido</p>
                     <p className="text-4xl font-black italic text-[#1A1A1A]">R$ {selectedOrder.currentOrder?.finalTotal.toFixed(2)}</p>
                  </div>
-                 <button onClick={() => { if(confirm('Finalizar pedido?')) { onUpdateTable(selectedOrder.id, 'free'); setSelectedOrderId(null); } }} className="bg-[#6C7A1D] text-white px-10 py-6 rounded-[2rem] font-black uppercase text-[11px] shadow-2xl active:scale-95 transition-all">Concluir Pedido ✅</button>
+                 <button onClick={() => { if(confirm('Concluir e arquivar pedido?')) { onUpdateTable(selectedOrder.id, 'free'); setSelectedOrderId(null); } }} className="bg-[#6C7A1D] text-white px-10 py-6 rounded-[2rem] font-black uppercase text-[11px] shadow-2xl active:scale-95 transition-all">Concluir Pedido ✅</button>
               </div>
            </div>
         </div>

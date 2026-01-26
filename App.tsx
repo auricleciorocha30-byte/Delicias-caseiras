@@ -4,10 +4,9 @@ import HeaderComp from './components/Header';
 import MenuItem from './components/MenuItem';
 import Cart from './components/Cart';
 import AdminPanel from './components/AdminPanel';
-import { MENU_ITEMS as STATIC_MENU, INITIAL_TABLES, STORE_INFO } from './constants';
+import { INITIAL_TABLES, STORE_INFO } from './constants';
 import { Product, CartItem, Table, Order, Category, Coupon, StoreConfig } from './types';
 import { supabase } from './lib/supabase';
-import { CloseIcon } from './components/Icons';
 
 const Footer: React.FC = () => (
   <footer className="w-full py-16 px-6 bg-[#FFF9E5] border-t border-[#FF7F11]/10 flex flex-col items-center text-center mt-12">
@@ -40,7 +39,6 @@ const App: React.FC = () => {
   const [menuItems, setMenuItems] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
-  const [audioEnabled, setAudioEnabled] = useState(true);
   const [dbStatus, setDbStatus] = useState<'loading' | 'ok'>('loading');
   
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({
@@ -69,13 +67,25 @@ const App: React.FC = () => {
     });
 
     if (catRes.data) setCategories(catRes.data);
-    if (coupRes.data) setActiveCoupons(coupRes.data.map((c: any) => ({ id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, scopeType: c.scope_type, scopeValue: c.scope_value })));
-    if (prodRes.data) setMenuItems(prodRes.data.map((p: any) => ({ id: p.id, name: p.name, description: p.description || '', price: Number(p.price), category: p.category, image: p.image, isAvailable: p.is_available ?? true })));
+    if (coupRes.data) setActiveCoupons(coupRes.data.map((c: any) => ({ 
+      id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, 
+      scopeType: c.scope_type, scopeValue: c.scope_value 
+    })));
+    
+    if (prodRes.data) setMenuItems(prodRes.data.map((p: any) => ({ 
+      id: p.id, name: p.name, description: p.description || '', price: Number(p.price), 
+      category: p.category, image: p.image, isAvailable: p.is_available ?? true 
+    })));
+
     if (tableRes.data) {
       const merged = [...INITIAL_TABLES];
       tableRes.data.forEach((dbT: any) => {
         const idx = merged.findIndex(t => t.id === dbT.id);
-        if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, currentOrder: dbT.current_order };
+        if (idx >= 0) merged[idx] = { 
+          id: dbT.id, 
+          status: dbT.status, 
+          currentOrder: dbT.current_order 
+        };
       });
       setTables(merged);
     }
@@ -96,8 +106,12 @@ const App: React.FC = () => {
     e.preventDefault();
     setIsLoadingLogin(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPass });
-    if (!error && data.session) setIsLoggedIn(true);
-    else alert('Erro ao entrar. Verifique suas credenciais.');
+    if (!error && data.session) {
+      setIsLoggedIn(true);
+      fetchData();
+    } else {
+      alert('Credenciais incorretas para Ju Marmitas.');
+    }
     setIsLoadingLogin(false);
   };
 
@@ -109,6 +123,7 @@ const App: React.FC = () => {
       tables_enabled: false,
       delivery_enabled: updatedCfg.deliveryEnabled,
       counter_enabled: updatedCfg.counterEnabled,
+      // Fix: Use correct camelCase property statusPanelEnabled instead of snake_case status_panel_enabled
       status_panel_enabled: updatedCfg.statusPanelEnabled
     });
   };
@@ -168,7 +183,12 @@ const App: React.FC = () => {
             tid = free?.id || range[0]; 
           }
           const { error } = await supabase.from('tables').upsert({ id: tid, status: 'occupied', current_order: { ...ord, tableId: tid } });
-          if (!error) { setCartItems([]); return true; } return false;
+          if (!error) { 
+            setCartItems([]); 
+            fetchData();
+            return true; 
+          } 
+          return false;
         }} storeConfig={storeConfig} />
       </div>
     );
@@ -182,9 +202,9 @@ const App: React.FC = () => {
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
           <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter">Ju Marmitas Caseiras</h2>
-          <p className="text-[10px] font-bold text-gray-400 uppercase mb-10">Acesso Administrativo</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase mb-10">Acesso Administrativo Ju</p>
           <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <input type="email" placeholder="E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
+            <input type="email" placeholder="E-MAIL DE ACESSO" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
             <input type="password" placeholder="SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
             <button type="submit" disabled={isLoadingLogin} className="w-full bg-[#1A1A1A] text-[#FF7F11] font-black py-6 rounded-3xl uppercase text-[11px] shadow-xl hover:scale-105 transition-all">
               {isLoadingLogin ? 'Entrando...' : 'Entrar no Sistema'}
@@ -198,17 +218,20 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFF9E5] p-6 font-sans">
       <AdminPanel 
-        tables={tables} menuItems={menuItems} categories={categories} audioEnabled={audioEnabled} onToggleAudio={() => setAudioEnabled(!audioEnabled)} onTestSound={() => {}}
+        tables={tables} menuItems={menuItems} categories={categories} audioEnabled={true} onToggleAudio={() => {}} onTestSound={() => {}}
         onUpdateTable={async (id, status, ord) => { 
-          if (status === 'free') await supabase.from('tables').delete().eq('id', id);
-          else await supabase.from('tables').upsert({ id, status, current_order: ord || null });
+          if (status === 'free') await supabase.from('tables').update({ status: 'free', current_order: null }).eq('id', id);
+          else await supabase.from('tables').update({ status, current_order: ord }).eq('id', id);
           fetchData();
         }}
         onAddToOrder={() => {}}
         onRefreshData={() => fetchData()} 
         onLogout={async () => { await supabase.auth.signOut(); setIsLoggedIn(false); }}
         onSaveProduct={async (p) => { 
-          await supabase.from('products').upsert({ id: p.id || 'p_'+Date.now(), name: p.name, price: p.price, category: p.category, image: p.image, is_available: p.isAvailable }); 
+          await supabase.from('products').upsert({ 
+            id: p.id || 'p_'+Date.now(), name: p.name, price: p.price, category: p.category, 
+            image: p.image, is_available: p.isAvailable, description: p.description 
+          }); 
           fetchData();
         }}
         onDeleteProduct={async (id) => { 

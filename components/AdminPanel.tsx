@@ -94,7 +94,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7" strokeWidth="3" strokeLinecap="round"/></svg>
           </div>
           <div className="text-left">
-            <h2 className="text-xl font-black italic text-white uppercase leading-none tracking-tighter">{STORE_INFO.name}</h2>
+            <h2 className="text-xl font-black italic text-white uppercase leading-none tracking-tighter">Ju Marmitas</h2>
             <p className="text-[9px] text-[#FF7F11] uppercase font-black tracking-[0.2em] mt-1">Gestão Administrativa</p>
           </div>
         </div>
@@ -108,7 +108,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </nav>
 
         <div className="flex gap-4">
-          <button onClick={handleOpenMenu} className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Ver meu cardápio 🥗</button>
+          <button onClick={handleOpenMenu} className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Abrir Cardápio 🥗</button>
           <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Sair</button>
         </div>
       </div>
@@ -158,7 +158,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <h3 className="text-2xl font-black italic uppercase tracking-tighter">Produtos</h3>
                 <div className="flex gap-4 w-full md:w-auto">
                   <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="flex-1 md:w-64 bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none focus:border-[#FF7F11]" />
-                  <button onClick={() => { setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true }); setIsProductModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl hover:brightness-125 transition-all">+ Novo Produto</button>
+                  <button onClick={() => { setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true, description: '' }); setIsProductModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl hover:brightness-125 transition-all">+ Novo Produto</button>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8">
@@ -189,12 +189,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
               <div className="space-y-6 mb-10">
                 <div>
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Meta R$</p>
+                  <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Meta de Gasto R$</p>
                   <input type="number" value={loyalty.spendingGoal} onChange={e => handleUpdateLoyalty({ spendingGoal: Number(e.target.value) })} className="w-full bg-gray-50 border-2 p-5 rounded-2xl font-black text-xl outline-none focus:border-[#6C7A1D] transition-all" />
                 </div>
                 
                 <div className="bg-gray-50 p-6 rounded-3xl">
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Escopo do Programa</p>
+                  <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Onde pontuar?</p>
                   <div className="flex gap-2 mb-4">
                     {(['all', 'category', 'product'] as const).map(type => (
                       <button key={type} onClick={() => handleUpdateLoyalty({ scopeType: type, scopeValue: '' })} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${loyalty.scopeType === type ? 'bg-[#6C7A1D] text-white border-[#6C7A1D]' : 'bg-white border-gray-100'}`}>
@@ -215,20 +215,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="space-y-3">
-                {loyaltyUsers.slice(0, 10).map((user, i) => (
-                  <div key={user.phone} className="flex items-center gap-4 p-5 bg-gray-50 rounded-2xl border">
-                    <span className="text-2xl">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '👤'}</span>
-                    <div className="flex-1">
-                      <p className="font-black text-[12px] uppercase">{user.name || 'Sem Nome'}</p>
-                      <div className="h-1.5 w-full bg-gray-200 rounded-full mt-2 overflow-hidden">
-                        <div className="h-full bg-[#6C7A1D]" style={{ width: `${Math.min(100, (user.accumulated / loyalty.spendingGoal) * 100)}%` }}></div>
-                      </div>
-                    </div>
-                    <span className="font-black italic text-[#6C7A1D] text-sm">R$ {user.accumulated.toFixed(2)}</span>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -254,11 +240,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {activeTab === 'setup' && (
           <div className="max-w-2xl mx-auto bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A] text-center">
-            <h3 className="text-2xl font-black italic uppercase mb-10">Loja Aberta/Fechada</h3>
+            <h3 className="text-2xl font-black italic uppercase mb-10">Status da Operação</h3>
             <div className="grid grid-cols-1 gap-4 mb-10 text-left">
                {[
-                 { id: 'deliveryEnabled', label: 'Pedidos p/ Entrega', icon: '🚚' },
-                 { id: 'counterEnabled', label: 'Retirada no Balcão', icon: '🏪' }
+                 { id: 'deliveryEnabled', label: 'Habilitar Entrega', icon: '🚚' },
+                 { id: 'counterEnabled', label: 'Habilitar Retirada', icon: '🏪' }
                ].map(service => (
                  <div key={service.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border">
                     <div className="flex items-center gap-4">
@@ -274,35 +260,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                  </div>
                ))}
             </div>
-            <div className="p-6 bg-orange-50 border-2 border-[#FF7F11]/20 rounded-[2.5rem] mb-10">
-              <p className="text-[10px] font-black uppercase text-[#FF7F11] mb-2 tracking-widest">Aviso importante</p>
-              <p className="text-[11px] font-bold text-gray-600 leading-relaxed uppercase">Ao desativar ambos os serviços, o cardápio público exibirá uma mensagem de "Loja Fechada".</p>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Modais de Gerenciamento */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-sm rounded-[3.5rem] p-10 relative shadow-2xl">
-             <button onClick={() => setIsCategoryModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-             <h3 className="text-2xl font-black italic mb-8 uppercase text-center">Nova Categoria</h3>
-             <form onSubmit={async (e) => {
-               e.preventDefault();
-               if (!newCategoryName) return;
-               await supabase.from('categories').insert([{ name: newCategoryName }]);
-               setNewCategoryName('');
-               setIsCategoryModalOpen(false);
-               onRefreshData();
-             }} className="space-y-6">
-                <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="NOME" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-                <button type="submit" className="w-full bg-[#FF7F11] text-white py-6 rounded-2xl font-black uppercase text-xs shadow-xl">Criar</button>
-             </form>
-          </div>
-        </div>
-      )}
-
+      {/* Modal Produto com Descrição */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
@@ -310,6 +272,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
              <h3 className="text-2xl font-black italic mb-10 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Novo'} Produto</h3>
              <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-5">
                 <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DO PRODUTO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11]" required />
+                
+                <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DETALHES DO PRODUTO (DESCRIÇÃO)" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none focus:border-[#FF7F11] h-32 resize-none" />
+
                 <div className="grid grid-cols-2 gap-4">
                   <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none" required />
                   <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none">
@@ -317,58 +282,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </select>
                 </div>
                 <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none" />
+                
                 <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-2xl">
                    <input type="checkbox" checked={editingProduct?.isAvailable} onChange={e => setEditingProduct({...editingProduct, isAvailable: e.target.checked})} className="w-6 h-6 rounded-lg accent-[#FF7F11]" />
-                   <label className="text-[10px] font-black uppercase">Disponível</label>
+                   <label className="text-[10px] font-black uppercase">Disponível para venda</label>
                 </div>
-                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Salvar</button>
+                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Salvar Marmita</button>
              </form>
           </div>
         </div>
       )}
 
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
-             <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">Configurar Cupom</h3>
-             <form onSubmit={async (e) => {
-               e.preventDefault();
-               await supabase.from('coupons').insert([{ code: editingCoupon.code.toUpperCase(), percentage: editingCoupon.percentage, is_active: true, scope_type: editingCoupon.scopeType, scope_value: editingCoupon.scopeValue }]);
-               setIsCouponModalOpen(false);
-               fetchMarketing();
-             }} className="space-y-6">
-                <input placeholder="CÓDIGO (EX: SAUDE10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-                <input type="number" placeholder="DESCONTO (%)" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black outline-none focus:border-[#FF7F11]" required />
-                
-                <div className="bg-gray-50 p-6 rounded-3xl">
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Escopo do Cupom</p>
-                  <div className="flex gap-2 mb-4">
-                    {(['all', 'category', 'product'] as const).map(type => (
-                      <button key={type} type="button" onClick={() => setEditingCoupon({...editingCoupon, scopeType: type, scopeValue: ''})} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${editingCoupon?.scopeType === type ? 'bg-[#FF7F11] text-white border-[#FF7F11]' : 'bg-white border-gray-100'}`}>
-                        {type === 'all' ? 'Tudo' : type === 'category' ? 'Categorias' : 'Produtos'}
-                      </button>
-                    ))}
-                  </div>
-                  {editingCoupon?.scopeType !== 'all' && (
-                    <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-white rounded-xl border no-scrollbar">
-                      {(editingCoupon?.scopeType === 'category' ? categories : menuItems).map((item: any) => {
-                        const isSelected = (editingCoupon?.scopeValue || '').split(',').includes(item.id || item.name);
-                        return (
-                          <button key={item.id || item.name} type="button" onClick={() => setEditingCoupon({...editingCoupon, scopeValue: toggleScopeValue(editingCoupon.scopeValue, item.id || item.name)})} className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${isSelected ? 'border-[#FF7F11] bg-[#FF7F11]/10' : 'border-gray-50 hover:border-gray-200'}`}>
-                            {item.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Ativar Cupom</button>
-             </form>
-          </div>
-        </div>
-      )}
-
+      {/* Modal Detalhes do Pedido */}
       {selectedOrderId && selectedOrder && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setSelectedOrderId(null)} />
@@ -376,7 +301,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex justify-between items-start mb-8">
                  <div>
                     <h3 className="text-3xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">Pedido de {selectedOrder.currentOrder?.customerName}</h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">ID: #{selectedOrder.currentOrder?.id}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">ID: #{selectedOrder.currentOrder?.id} • {selectedOrder.id >= 950 ? 'Retirada' : 'Entrega'}</p>
                  </div>
                  <button onClick={() => setSelectedOrderId(null)} className="p-4 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><CloseIcon size={24}/></button>
               </div>
@@ -405,6 +330,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                        </div>
                     ))}
                  </div>
+
+                 {selectedOrder.currentOrder?.address && (
+                   <div className="bg-[#1A1A1A] p-8 rounded-3xl text-white">
+                      <p className="text-[9px] font-black uppercase text-[#FF7F11] mb-2 tracking-widest">Endereço de Entrega</p>
+                      <p className="text-sm font-bold uppercase">{selectedOrder.currentOrder.address}</p>
+                   </div>
+                 )}
               </div>
 
               <div className="pt-10 mt-10 border-t flex justify-between items-center">

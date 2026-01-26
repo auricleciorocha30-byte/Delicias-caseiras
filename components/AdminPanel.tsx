@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Table, Order, Product, Category, Coupon, LoyaltyConfig, LoyaltyUser, OrderStatus, StoreConfig } from '../types';
+import { Table, Order, Product, Category, Coupon, LoyaltyConfig, LoyaltyUser, OrderStatus, StoreConfig, CartItem, OrderType } from '../types';
 import { CloseIcon, TrashIcon, VolumeIcon, EditIcon, BackupIcon, RestoreIcon } from './Icons';
 import { supabase } from '../lib/supabase';
 import { STORE_INFO } from '../constants';
@@ -39,12 +39,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Modais
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [isManualOrderModalOpen, setIsManualOrderModalOpen] = useState(false);
+
+  // Estado para Novo Pedido Manual
+  const [manualOrderData, setManualOrderData] = useState<{
+    customerName: string;
+    customerPhone: string;
+    address: string;
+    items: CartItem[];
+    type: 'delivery' | 'takeaway';
+    paymentMethod: string;
+  }>({
+    customerName: '',
+    customerPhone: '',
+    address: '',
+    items: [],
+    type: 'delivery',
+    paymentMethod: 'Pix'
+  });
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loyalty, setLoyalty] = useState<LoyaltyConfig>({ isActive: false, spendingGoal: 100, scopeType: 'all', scopeValue: '' });
@@ -82,9 +101,52 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     return [...vals, id].join(',');
   };
 
+  const handleAddManualItem = (prod: Product) => {
+    setManualOrderData(prev => {
+      const existing = prev.items.find(i => i.id === prod.id);
+      if (existing) {
+        return { ...prev, items: prev.items.map(i => i.id === prod.id ? { ...i, quantity: i.quantity + 1 } : i) };
+      }
+      return { ...prev, items: [...prev.items, { ...prod, quantity: 1 }] };
+    });
+  };
+
+  const handleRemoveManualItem = (id: string) => {
+    setManualOrderData(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
+  };
+
+  const submitManualOrder = async () => {
+    if (!manualOrderData.customerName || manualOrderData.items.length === 0) {
+      alert("Preencha o nome e adicione itens.");
+      return;
+    }
+
+    const total = manualOrderData.items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+    const range = manualOrderData.type === 'delivery' ? [900, 949] : [950, 999];
+    const freeTable = tables.find(t => t.id >= range[0] && t.id <= range[1] && t.status === 'free');
+    const tid = freeTable?.id || range[0];
+
+    const newOrder: Order = {
+      id: 'MAN-' + Math.random().toString(36).substr(2, 4).toUpperCase(),
+      customerName: manualOrderData.customerName,
+      customerPhone: manualOrderData.customerPhone,
+      items: manualOrderData.items,
+      total: total,
+      finalTotal: total,
+      paymentMethod: manualOrderData.paymentMethod,
+      timestamp: new Date().toISOString(),
+      tableId: tid,
+      status: 'pending',
+      orderType: manualOrderData.type === 'delivery' ? 'delivery' : 'counter',
+      address: manualOrderData.type === 'delivery' ? manualOrderData.address : undefined
+    };
+
+    onUpdateTable(tid, 'occupied', newOrder);
+    setIsManualOrderModalOpen(false);
+    setManualOrderData({ customerName: '', customerPhone: '', address: '', items: [], type: 'delivery', paymentMethod: 'Pix' });
+  };
+
   const filteredMenu = menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  
-  // Agrupamento de Pedidos: Entregas (900-949) e Retiradas (950-999)
   const deliveryOrders = tables.filter(t => t.id >= 900 && t.id <= 949 && t.status === 'occupied');
   const takeawayOrders = tables.filter(t => t.id >= 950 && t.id <= 999 && t.status === 'occupied');
   
@@ -99,8 +161,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7" strokeWidth="3" strokeLinecap="round"/></svg>
           </div>
           <div className="text-left">
-            <h2 className="text-xl font-black italic text-white uppercase leading-none tracking-tighter">Ju Marmitas</h2>
-            <p className="text-[9px] text-[#FF7F11] uppercase font-black tracking-[0.2em] mt-1">Gestão Administrativa</p>
+            <h2 className="text-xl font-black italic text-white uppercase leading-none tracking-tighter">Ju Admin</h2>
+            <p className="text-[9px] text-[#FF7F11] uppercase font-black tracking-[0.2em] mt-1">Gestão Marmitas</p>
           </div>
         </div>
 
@@ -113,64 +175,64 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </nav>
 
         <div className="flex gap-4">
-          <button onClick={handleOpenMenu} className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Abrir Cardápio 🥗</button>
+          <button onClick={handleOpenMenu} className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Cardápio Público 🥗</button>
           <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Sair</button>
         </div>
       </div>
 
       <div className="min-h-[60vh]">
-        {/* ABA DE PEDIDOS REFORMULADA */}
+        {/* ABA DE PEDIDOS */}
         {activeTab === 'delivery' && (
           <div className="space-y-12">
-            {/* Seção de Entregas */}
-            <div>
-              <div className="flex items-center gap-4 mb-6 ml-2">
-                <span className="text-2xl">🚚</span>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">Entregas a Domicílio</h3>
-                <span className="bg-[#FF7F11] text-white text-[10px] px-3 py-1 rounded-full font-black">{deliveryOrders.length}</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {deliveryOrders.map(t => (
-                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[3rem] border-4 border-[#FF7F11] text-left relative overflow-hidden group shadow-xl transition-all hover:scale-[1.02]">
-                    <div className="absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase bg-[#FF7F11] text-white">Entrega</div>
-                    <h4 className="font-black text-lg uppercase truncate mb-1 text-[#1A1A1A]">{t.currentOrder?.customerName}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Pedido #{t.currentOrder?.id}</p>
-                    <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[9px] font-black px-4 py-1.5 rounded-full inline-block uppercase tracking-widest`}>
-                      {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
-                    </div>
-                  </button>
-                ))}
-                {deliveryOrders.length === 0 && (
-                  <div className="col-span-full py-10 text-center border-2 border-dashed rounded-[3rem] border-gray-200">
-                    <p className="font-black uppercase text-[10px] tracking-widest text-gray-400">Nenhuma entrega pendente</p>
-                  </div>
-                )}
-              </div>
+            <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border">
+               <div>
+                  <h3 className="text-xl font-black uppercase italic text-[#1A1A1A]">Fluxo de Pedidos</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acompanhe e gerencie a cozinha</p>
+               </div>
+               <button onClick={() => setIsManualOrderModalOpen(true)} className="bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all">+ Novo Pedido Manual</button>
             </div>
 
-            {/* Seção de Retiradas */}
-            <div>
-              <div className="flex items-center gap-4 mb-6 ml-2">
-                <span className="text-2xl">🏪</span>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">Retiradas na Loja</h3>
-                <span className="bg-[#6C7A1D] text-white text-[10px] px-3 py-1 rounded-full font-black">{takeawayOrders.length}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              {/* Entregas */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 ml-2 text-[#FF7F11]">
+                  <span className="text-2xl">🚚</span>
+                  <h4 className="font-black uppercase italic tracking-tighter">Entregas em Aberto ({deliveryOrders.length})</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {deliveryOrders.map(t => (
+                    <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[2.5rem] border-4 border-[#FF7F11] text-left flex justify-between items-center shadow-md hover:shadow-xl transition-all">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">#{t.currentOrder?.id}</p>
+                        <h5 className="font-black text-lg uppercase text-[#1A1A1A]">{t.currentOrder?.customerName}</h5>
+                      </div>
+                      <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[8px] font-black px-4 py-2 rounded-full uppercase tracking-widest`}>
+                        {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {takeawayOrders.map(t => (
-                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[3rem] border-4 border-[#6C7A1D] text-left relative overflow-hidden group shadow-xl transition-all hover:scale-[1.02]">
-                    <div className="absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase bg-[#6C7A1D] text-white">Retirada</div>
-                    <h4 className="font-black text-lg uppercase truncate mb-1 text-[#1A1A1A]">{t.currentOrder?.customerName}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Pedido #{t.currentOrder?.id}</p>
-                    <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[9px] font-black px-4 py-1.5 rounded-full inline-block uppercase tracking-widest`}>
-                      {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
-                    </div>
-                  </button>
-                ))}
-                {takeawayOrders.length === 0 && (
-                  <div className="col-span-full py-10 text-center border-2 border-dashed rounded-[3rem] border-gray-200">
-                    <p className="font-black uppercase text-[10px] tracking-widest text-gray-400">Nenhuma retirada pendente</p>
-                  </div>
-                )}
+
+              {/* Retiradas */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 ml-2 text-[#6C7A1D]">
+                  <span className="text-2xl">🏪</span>
+                  <h4 className="font-black uppercase italic tracking-tighter">Retiradas Balcão ({takeawayOrders.length})</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {takeawayOrders.map(t => (
+                    <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="bg-white p-6 rounded-[2.5rem] border-4 border-[#6C7A1D] text-left flex justify-between items-center shadow-md hover:shadow-xl transition-all">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">#{t.currentOrder?.id}</p>
+                        <h5 className="font-black text-lg uppercase text-[#1A1A1A]">{t.currentOrder?.customerName}</h5>
+                      </div>
+                      <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[8px] font-black px-4 py-2 rounded-full uppercase tracking-widest`}>
+                        {STATUS_CFG[t.currentOrder?.status || 'pending'].label}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -196,7 +258,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
               <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Meus Produtos</h3>
+                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Gestão de Produtos</h3>
                 <div className="flex gap-4 w-full md:w-auto">
                   <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="flex-1 md:w-64 bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none focus:border-[#FF7F11]" />
                   <button onClick={() => { setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true, description: '' }); setIsProductModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl hover:brightness-125 transition-all">+ Novo Produto</button>
@@ -204,7 +266,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8">
                 {filteredMenu.map(item => (
-                  <div key={item.id} className="bg-gray-50 p-5 rounded-[3rem] border-2 border-transparent hover:border-[#FF7F11] transition-all relative group overflow-hidden shadow-sm">
+                  <div key={item.id} className={`bg-gray-50 p-5 rounded-[3rem] border-2 transition-all relative group overflow-hidden shadow-sm ${!item.isAvailable ? 'opacity-50 grayscale border-red-200' : 'hover:border-[#FF7F11] border-transparent'}`}>
                     <img src={item.image} className="w-full aspect-square object-cover rounded-[2rem] mb-4 shadow-md" />
                     <h4 className="font-black text-[11px] uppercase truncate mb-1">{item.name}</h4>
                     <p className="text-[#FF7F11] font-black italic text-[14px] mb-4">R$ {item.price.toFixed(2)}</p>
@@ -212,102 +274,87 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <button onClick={() => { setEditingProduct(item); setIsProductModalOpen(true); }} className="flex-1 bg-white p-3 rounded-xl shadow-sm text-blue-500 flex justify-center hover:bg-blue-50 transition-colors"><EditIcon size={18}/></button>
                       <button onClick={() => onDeleteProduct(item.id)} className="flex-1 bg-white p-3 rounded-xl shadow-sm text-red-500 flex justify-center hover:bg-red-50 transition-colors"><TrashIcon size={18}/></button>
                     </div>
+                    {!item.isAvailable && (
+                      <div className="absolute top-2 right-2 bg-red-600 text-white text-[7px] font-black uppercase px-2 py-1 rounded-full">Indisponível</div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           </div>
         )}
-
-        {/* ABA DE MARKETING */}
-        {activeTab === 'marketing' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#6C7A1D]">
-              <div className="flex justify-between items-center mb-10">
-                <h3 className="text-2xl font-black italic uppercase">💎 Fidelidade</h3>
-                <button onClick={() => handleUpdateLoyalty({ isActive: !loyalty.isActive })} className={`px-6 py-3 rounded-2xl font-black text-[9px] uppercase transition-all ${loyalty.isActive ? 'bg-[#6C7A1D] text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
-                  {loyalty.isActive ? 'Ativado' : 'Desativado'}
-                </button>
-              </div>
-              <div className="space-y-6">
-                <div>
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Meta de Gasto R$</p>
-                  <input type="number" value={loyalty.spendingGoal} onChange={e => handleUpdateLoyalty({ spendingGoal: Number(e.target.value) })} className="w-full bg-gray-50 border-2 p-5 rounded-2xl font-black text-xl outline-none focus:border-[#6C7A1D] transition-all" />
-                </div>
-                
-                <div className="bg-gray-50 p-6 rounded-3xl">
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Onde pontuar?</p>
-                  <div className="flex gap-2 mb-4">
-                    {(['all', 'category', 'product'] as const).map(type => (
-                      <button key={type} onClick={() => handleUpdateLoyalty({ scopeType: type, scopeValue: '' })} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${loyalty.scopeType === type ? 'bg-[#6C7A1D] text-white border-[#6C7A1D]' : 'bg-white border-gray-100'}`}>
-                        {type === 'all' ? 'Tudo' : type === 'category' ? 'Categorias' : 'Produtos'}
-                      </button>
-                    ))}
-                  </div>
-                  {loyalty.scopeType !== 'all' && (
-                    <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-white rounded-xl border no-scrollbar">
-                      {(loyalty.scopeType === 'category' ? categories : menuItems).map((item: any) => {
-                        const isSelected = (loyalty.scopeValue || '').split(',').includes(item.id || item.name);
-                        return (
-                          <button key={item.id || item.name} onClick={() => handleUpdateLoyalty({ scopeValue: toggleScopeValue(loyalty.scopeValue, item.id || item.name) })} className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${isSelected ? 'border-[#6C7A1D] bg-[#6C7A1D]/10' : 'border-gray-50 hover:border-gray-200'}`}>
-                            {item.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#FF7F11]">
-               <div className="flex justify-between items-center mb-10">
-                  <h3 className="text-2xl font-black italic uppercase">🎫 Cupons</h3>
-                  <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg">+ Novo Cupom</button>
-               </div>
-               <div className="space-y-4">
-                  {coupons.map(coupon => (
-                    <div key={coupon.id} className="p-6 bg-gray-50 rounded-[2.5rem] border-2 border-gray-100 flex justify-between items-center">
-                      <div>
-                        <span className="bg-[#1A1A1A] text-[#FF7F11] px-4 py-1.5 rounded-lg font-black tracking-[0.2em] text-sm uppercase">{coupon.code}</span>
-                        <p className="text-[#6C7A1D] font-black text-[12px] mt-2 uppercase">{coupon.percentage}% OFF • {coupon.scopeType === 'all' ? 'Tudo' : 'Específico'}</p>
-                      </div>
-                      <button onClick={async () => { if(confirm('Excluir?')) { await supabase.from('coupons').delete().eq('id', coupon.id); fetchMarketing(); } }} className="p-4 bg-white rounded-2xl text-red-500 shadow-sm border border-transparent hover:border-red-100 transition-all"><TrashIcon size={20}/></button>
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ABA DE SETUP */}
-        {activeTab === 'setup' && (
-          <div className="max-w-2xl mx-auto bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A] text-center">
-            <h3 className="text-2xl font-black italic uppercase mb-10">Abertura e Fechamento</h3>
-            <div className="grid grid-cols-1 gap-4 mb-10 text-left">
-               {[
-                 { id: 'deliveryEnabled', label: 'Aceitar Entregas', icon: '🚚' },
-                 { id: 'counterEnabled', label: 'Aceitar Retiradas', icon: '🏪' }
-               ].map(service => (
-                 <div key={service.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border">
-                    <div className="flex items-center gap-4">
-                      <span className="text-2xl">{service.icon}</span>
-                      <span className="font-black uppercase text-[11px] tracking-widest">{service.label}</span>
-                    </div>
-                    <button 
-                      onClick={() => onUpdateStoreConfig({ ...storeConfig, [service.id]: !storeConfig[service.id as keyof StoreConfig] })}
-                      className={`w-16 h-8 rounded-full relative transition-all ${storeConfig[service.id as keyof StoreConfig] ? 'bg-[#6C7A1D]' : 'bg-gray-300'}`}
-                    >
-                      <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${storeConfig[service.id as keyof StoreConfig] ? 'left-9' : 'left-1'}`}></div>
-                    </button>
-                 </div>
-               ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* MODAL DE PRODUTO COM DESCRIÇÃO */}
+      {/* MODAL NOVO PEDIDO MANUAL */}
+      {isManualOrderModalOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
+          <div className="bg-white w-full max-w-4xl rounded-[4rem] p-12 relative shadow-2xl flex flex-col md:flex-row gap-10 max-h-[90vh] overflow-hidden">
+             <button onClick={() => setIsManualOrderModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={24}/></button>
+             
+             {/* Esquerda: Dados Cliente */}
+             <div className="flex-1 flex flex-col gap-6 overflow-y-auto no-scrollbar pr-4">
+                <h3 className="text-2xl font-black italic uppercase">Novo Pedido Manual</h3>
+                <div className="space-y-4">
+                  <input placeholder="NOME DO CLIENTE" value={manualOrderData.customerName} onChange={e => setManualOrderData({...manualOrderData, customerName: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" />
+                  <input placeholder="WHATSAPP" value={manualOrderData.customerPhone} onChange={e => setManualOrderData({...manualOrderData, customerPhone: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" />
+                  
+                  <div className="flex gap-2">
+                    <button onClick={() => setManualOrderData({...manualOrderData, type: 'delivery'})} className={`flex-1 py-4 rounded-xl text-[9px] font-black uppercase border-2 ${manualOrderData.type === 'delivery' ? 'bg-[#FF7F11] text-white border-[#FF7F11]' : 'bg-white border-gray-100'}`}>Entrega</button>
+                    <button onClick={() => setManualOrderData({...manualOrderData, type: 'takeaway'})} className={`flex-1 py-4 rounded-xl text-[9px] font-black uppercase border-2 ${manualOrderData.type === 'takeaway' ? 'bg-[#6C7A1D] text-white border-[#6C7A1D]' : 'bg-white border-gray-100'}`}>Balcão</button>
+                  </div>
+
+                  {manualOrderData.type === 'delivery' && (
+                    <textarea placeholder="ENDEREÇO COMPLETO" value={manualOrderData.address} onChange={e => setManualOrderData({...manualOrderData, address: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black h-24 resize-none outline-none focus:border-[#FF7F11]" />
+                  )}
+
+                  <select value={manualOrderData.paymentMethod} onChange={e => setManualOrderData({...manualOrderData, paymentMethod: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]">
+                    <option value="Pix">Pix</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão">Cartão</option>
+                  </select>
+                </div>
+
+                <div className="mt-6 p-6 bg-gray-50 rounded-3xl border">
+                  <h4 className="text-[10px] font-black uppercase mb-4 text-gray-400">Itens do Pedido</h4>
+                  <div className="space-y-3">
+                    {manualOrderData.items.map(item => (
+                      <div key={item.id} className="flex justify-between items-center text-xs font-black uppercase">
+                        <span>{item.quantity}x {item.name}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[#FF7F11]">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                          <button onClick={() => handleRemoveManualItem(item.id)} className="text-red-500"><TrashIcon size={14}/></button>
+                        </div>
+                      </div>
+                    ))}
+                    {manualOrderData.items.length === 0 && <p className="text-[9px] text-gray-400 italic">Nenhum item adicionado</p>}
+                  </div>
+                  <div className="mt-6 pt-6 border-t flex justify-between items-end">
+                    <p className="text-[10px] font-black uppercase text-gray-400">Total</p>
+                    <p className="text-2xl font-black italic">R$ {manualOrderData.items.reduce((acc, i) => acc + (i.price * i.quantity), 0).toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <button onClick={submitManualOrder} className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-xl active:scale-95 transition-all mt-4">Lançar Pedido ✅</button>
+             </div>
+
+             {/* Direita: Seleção de Produtos */}
+             <div className="flex-1 bg-gray-50 p-8 rounded-[3rem] overflow-y-auto no-scrollbar">
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6">Selecione os Itens</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {menuItems.filter(i => i.isAvailable).map(prod => (
+                    <button key={prod.id} onClick={() => handleAddManualItem(prod)} className="bg-white p-4 rounded-3xl border-2 border-transparent hover:border-[#FF7F11] text-left transition-all shadow-sm">
+                       <img src={prod.image} className="w-full aspect-square object-cover rounded-2xl mb-3" />
+                       <p className="text-[10px] font-black uppercase truncate">{prod.name}</p>
+                       <p className="text-[11px] font-black italic text-[#FF7F11]">R$ {prod.price.toFixed(2)}</p>
+                    </button>
+                  ))}
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE PRODUTO */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
@@ -353,56 +400,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* MODAL DE CUPOM COM ESCOPO */}
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
-             <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={20}/></button>
-             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">Configurar Novo Cupom</h3>
-             <form onSubmit={async (e) => {
-               e.preventDefault();
-               await supabase.from('coupons').insert([{ 
-                 code: editingCoupon.code.toUpperCase(), 
-                 percentage: editingCoupon.percentage, 
-                 is_active: true, 
-                 scope_type: editingCoupon.scopeType, 
-                 scope_value: editingCoupon.scopeValue 
-               }]);
-               setIsCouponModalOpen(false);
-               fetchMarketing();
-             }} className="space-y-6">
-                <input placeholder="CÓDIGO (EX: JU10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-                <input type="number" placeholder="DESCONTO (%)" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black outline-none focus:border-[#FF7F11]" required />
-                
-                <div className="bg-gray-50 p-6 rounded-3xl">
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Aonde este cupom funciona?</p>
-                  <div className="flex gap-2 mb-4">
-                    {(['all', 'category', 'product'] as const).map(type => (
-                      <button key={type} type="button" onClick={() => setEditingCoupon({...editingCoupon, scopeType: type, scopeValue: ''})} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${editingCoupon?.scopeType === type ? 'bg-[#FF7F11] text-white border-[#FF7F11]' : 'bg-white border-gray-100'}`}>
-                        {type === 'all' ? 'Tudo' : type === 'category' ? 'Categorias' : 'Produtos'}
-                      </button>
-                    ))}
-                  </div>
-                  {editingCoupon?.scopeType !== 'all' && (
-                    <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-white rounded-xl border no-scrollbar">
-                      {(editingCoupon?.scopeType === 'category' ? categories : menuItems).map((item: any) => {
-                        const isSelected = (editingCoupon?.scopeValue || '').split(',').includes(item.id || item.name);
-                        return (
-                          <button key={item.id || item.name} type="button" onClick={() => setEditingCoupon({...editingCoupon, scopeValue: toggleScopeValue(editingCoupon.scopeValue, item.id || item.name)})} className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${isSelected ? 'border-[#FF7F11] bg-[#FF7F11]/10' : 'border-gray-50 hover:border-gray-200'}`}>
-                            {item.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <button type="submit" className="w-full bg-[#1A1A1A] text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl active:scale-95 transition-all">Ativar Cupom</button>
-             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE DETALHES DO PEDIDO */}
+      {/* MODAL DETALHES PEDIDO */}
       {selectedOrderId && selectedOrder && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setSelectedOrderId(null)} />
@@ -430,7 +428,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                  </div>
 
                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Marmitas Solicitadas</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Itens Solicitados</h4>
                     {selectedOrder.currentOrder?.items.map((item, idx) => (
                        <div key={idx} className="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100">
                           <img src={item.image} className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
@@ -445,20 +443,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                  {selectedOrder.currentOrder?.address && (
                    <div className="bg-[#1A1A1A] p-8 rounded-3xl text-white">
-                      <p className="text-[9px] font-black uppercase text-[#FF7F11] mb-2 tracking-widest">Endereço para Entrega</p>
+                      <p className="text-[9px] font-black uppercase text-[#FF7F11] mb-2 tracking-widest">Endereço de Entrega</p>
                       <p className="text-sm font-bold uppercase leading-relaxed">{selectedOrder.currentOrder.address}</p>
-                   </div>
-                 )}
-
-                 {selectedOrder.currentOrder?.customerPhone && (
-                   <div className="flex items-center justify-between p-6 bg-[#6C7A1D]/10 rounded-3xl border border-[#6C7A1D]/20">
-                     <div>
-                       <p className="text-[9px] font-black uppercase text-[#6C7A1D] mb-1">WhatsApp Cliente</p>
-                       <p className="text-sm font-black text-[#1A1A1A] tracking-tighter">{selectedOrder.currentOrder.customerPhone}</p>
-                     </div>
-                     <a href={`https://wa.me/${selectedOrder.currentOrder.customerPhone.replace(/\D/g,'')}`} target="_blank" rel="noopener" className="bg-[#6C7A1D] text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.438 9.889-9.886.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.89 4.44-9.892 9.886-.001 2.125.593 3.456 1.574 5.111l-.973 3.548 3.638-.954z"/></svg>
-                     </a>
                    </div>
                  )}
               </div>

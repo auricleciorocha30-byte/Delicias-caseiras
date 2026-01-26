@@ -32,7 +32,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
     : 0;
 
   return (
-    <div className={`group bg-white rounded-[2.5rem] shadow-sm border overflow-hidden flex flex-col relative transition-all duration-300 ${!isAvailable ? 'opacity-70' : 'hover:shadow-xl hover:-translate-y-1'} ${isKit ? 'border-[#FF7F11] border-2 ring-4 ring-[#FF7F11]/5' : 'border-gray-100'}`}>
+    <div className={`group bg-white rounded-[2.5rem] shadow-sm border overflow-hidden flex flex-col relative transition-all duration-300 ${!isAvailable ? 'opacity-70 grayscale-[0.5]' : 'hover:shadow-xl hover:-translate-y-1'} ${isKit ? 'border-[#FF7F11] border-2 ring-4 ring-[#FF7F11]/5' : 'border-gray-100'}`}>
       {isKit && isAvailable && (
         <div className="absolute top-5 left-5 z-10 bg-[#FF7F11] text-white text-[10px] font-black uppercase px-4 py-2 rounded-full shadow-lg tracking-widest animate-pulse">
           PLANO MENSAL ⭐
@@ -46,8 +46,8 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
       )}
 
       {!isAvailable && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-8 text-center">
-          <div className="bg-red-600 text-white font-black text-[12px] uppercase tracking-[0.25em] px-8 py-4 rounded-full shadow-2xl mb-2">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-8 text-center transition-opacity duration-500">
+          <div className="bg-red-600 text-white font-black text-[12px] uppercase tracking-[0.25em] px-8 py-4 rounded-full shadow-2xl mb-2 scale-110">
             Esgotado 🚫
           </div>
           <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.2em]">Reposição em breve</p>
@@ -58,7 +58,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
         <img 
           src={product.image} 
           alt={product.name} 
-          className={`w-full h-full object-cover transition-transform duration-1000 ${!isAvailable ? 'grayscale scale-105' : 'group-hover:scale-110'}`}
+          className={`w-full h-full object-cover transition-transform duration-1000 ${!isAvailable ? 'scale-105' : 'group-hover:scale-110'}`}
         />
         {isAvailable && (
           <div className={`absolute bottom-4 right-4 ${isKit ? 'bg-[#FF7F11]' : 'bg-[#1A1A1A]'} text-white font-black px-5 py-2 rounded-2xl text-[18px] shadow-2xl tracking-tighter italic border-2 border-white/20`}>
@@ -90,7 +90,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
           className={`w-full ${!isAvailable ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : isKit ? 'bg-[#FF7F11] text-white shadow-[#FF7F11]/20' : 'bg-[#1A1A1A] text-white'} font-black py-5 rounded-[1.5rem] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl ${isAvailable ? 'hover:brightness-110' : ''}`}
         >
           <span className="text-[11px] uppercase tracking-[0.2em]">
-            {isKit ? 'Assinar Plano' : 'Adicionar ao Carrinho'}
+            {isKit ? 'Assinar Plano' : isAvailable ? 'Adicionar ao Carrinho' : 'Indisponível'}
           </span>
           {isAvailable && (
             <svg width="22" height="22" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

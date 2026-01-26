@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
   const [dbStatus, setDbStatus] = useState<'loading' | 'ok'>('loading');
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({
     tablesEnabled: false, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: false
@@ -48,19 +49,26 @@ const App: React.FC = () => {
   const playDing = useCallback(() => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
-      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.5);
+      
+      // Som mais complexo e audível (dois bips)
+      const playTone = (freq: number, start: number, duration: number) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime + start);
+        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + start + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start(audioCtx.currentTime + start);
+        oscillator.stop(audioCtx.currentTime + start + duration);
+      };
+
+      playTone(880, 0, 0.3); // Nota Lá (agudo)
+      playTone(660, 0.2, 0.4); // Nota Mi
     } catch (e) {
-      console.warn("Audio Context blocked.");
+      console.warn("Audio Context blocked. Please interact with the page first.");
     }
   }, []);
 
@@ -81,8 +89,8 @@ const App: React.FC = () => {
     if (configRes.data) setStoreConfig({
       tablesEnabled: false,
       deliveryEnabled: configRes.data.delivery_enabled,
-      counterEnabled: configRes.data.counter_enabled,
-      statusPanelEnabled: configRes.data.status_panel_enabled
+      counter_enabled: configRes.data.counter_enabled,
+      status_panel_enabled: configRes.data.status_panel_enabled
     });
 
     if (catRes.data) setCategories(catRes.data);
@@ -113,27 +121,24 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const tableSub = supabase
-      .channel('tables_realtime')
+      .channel('tables_realtime_admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, (payload) => {
         const newData = payload.new as any;
         const oldData = payload.old as any;
+        
+        // Se uma mesa/pedido passou de livre para ocupado (novo pedido chegou)
         if (newData.status === 'occupied' && (!oldData || oldData.status === 'free')) {
-          if (isLoggedIn) playDing();
+          if (isLoggedIn) {
+            playDing();
+            setShowNewOrderAlert(true);
+          }
         }
-        fetchData();
-      })
-      .subscribe();
-
-    const productSub = supabase
-      .channel('products_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
         fetchData();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(tableSub);
-      supabase.removeChannel(productSub);
     };
   }, [fetchData, isLoggedIn, playDing]);
 
@@ -195,7 +200,6 @@ const App: React.FC = () => {
                 ))}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {/* REMOVIDO FILTRO DE ISAVAILABLE PARA MOSTRAR ESGOTADOS */}
                 {menuItems.filter(i => (selectedCategory === 'Todos' || i.category === selectedCategory)).map(item => (
                   <MenuItem key={item.id} product={item} activeCoupons={activeCoupons} onAdd={(p) => setCartItems(prev => { 
                     const ex = prev.find(i => i.id === p.id); 
@@ -284,6 +288,8 @@ const App: React.FC = () => {
           fetchData();
         }}
         dbStatus={dbStatus} storeConfig={storeConfig} onUpdateStoreConfig={handleUpdateStoreConfig}
+        showNewOrderAlert={showNewOrderAlert}
+        onClearAlert={() => setShowNewOrderAlert(false)}
       />
     </div>
   );

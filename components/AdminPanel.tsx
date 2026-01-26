@@ -21,6 +21,8 @@ interface AdminPanelProps {
   dbStatus: 'loading' | 'ok';
   storeConfig: StoreConfig;
   onUpdateStoreConfig: (newCfg: StoreConfig) => void;
+  showNewOrderAlert: boolean;
+  onClearAlert: () => void;
 }
 
 const STATUS_CFG: Record<string, any> = {
@@ -33,7 +35,7 @@ const STATUS_CFG: Record<string, any> = {
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
   tables = [], menuItems = [], categories = [], onTestSound,
   onUpdateTable, onRefreshData, onLogout, onSaveProduct, onDeleteProduct,
-  storeConfig, onUpdateStoreConfig
+  storeConfig, onUpdateStoreConfig, showNewOrderAlert, onClearAlert
 }) => {
   const [activeTab, setActiveTab] = useState<'delivery' | 'menu' | 'marketing' | 'setup'>('delivery');
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -67,7 +69,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     const { data: cData } = await supabase.from('coupons').select('*');
     if (cData) setCoupons(cData.map(c => ({ id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, scopeType: c.scope_type as any, scopeValue: c.scope_value || '' })));
     const { data: lConfig } = await supabase.from('loyalty_config').select('*').maybeSingle();
-    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spendingGoal: lConfig.spending_goal, scopeType: lConfig.scope_type as any, scopeValue: lConfig.scope_value || '' });
+    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spending_goal: lConfig.spending_goal, scope_type: lConfig.scope_type as any, scope_value: lConfig.scope_value || '' });
   };
 
   const handleUpdateLoyalty = async (updates: Partial<LoyaltyConfig>) => {
@@ -119,7 +121,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const selectedOrder = tables.find(t => t.id === selectedOrderId);
 
   return (
-    <div className="w-full animate-in fade-in duration-500">
+    <div className="w-full animate-in fade-in duration-500 relative">
+      {/* ALERTA VISUAL DE NOVO PEDIDO */}
+      {showNewOrderAlert && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-md animate-bounce">
+          <button 
+            onClick={onClearAlert}
+            className="w-full bg-[#FF7F11] text-white p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,127,17,0.4)] flex items-center justify-between border-4 border-white"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-full animate-pulse">
+                <VolumeIcon size={24} className="text-[#FF7F11]" />
+              </div>
+              <div className="text-left">
+                <p className="font-black uppercase text-xs tracking-widest">Atenção!</p>
+                <p className="font-black text-xl italic leading-none">NOVO PEDIDO CHEGOU!</p>
+              </div>
+            </div>
+            <span className="bg-brand-dark px-4 py-2 rounded-2xl text-[10px] font-black uppercase">OK</span>
+          </button>
+        </div>
+      )}
+
       {/* HEADER ADMIN */}
       <div className="bg-[#1A1A1A] p-6 rounded-[3rem] shadow-2xl mb-8 flex flex-col md:flex-row justify-between items-center gap-6 border-b-8 border-[#FF7F11]">
         <div className="flex items-center gap-4">
@@ -139,7 +162,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           ))}
         </nav>
         <div className="flex gap-2">
-          {/* FUNÇÃO VER MEU CARDÁPIO RESTAURADA */}
           <button 
             onClick={() => window.open(window.location.origin + '?view=menu', '_blank')}
             className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center gap-2"

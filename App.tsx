@@ -42,18 +42,14 @@ const App: React.FC = () => {
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [dbStatus, setDbStatus] = useState<'loading' | 'ok'>('loading');
-  const [activeAlert, setActiveAlert] = useState<any>(null);
   
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({
     tablesEnabled: false, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: false
   });
 
   const isStoreClosed = useMemo(() => {
-    // Agora verifica se os serviços que permitem pedidos estão todos desligados
     return !storeConfig.deliveryEnabled && !storeConfig.counterEnabled;
   }, [storeConfig]);
-
-  const notificationSound = useRef<HTMLAudioElement | null>(null);
 
   const fetchData = useCallback(async () => {
     setDbStatus('loading');
@@ -66,7 +62,7 @@ const App: React.FC = () => {
     ]);
 
     if (configRes.data) setStoreConfig({
-      tablesEnabled: configRes.data.tables_enabled,
+      tablesEnabled: false,
       deliveryEnabled: configRes.data.delivery_enabled,
       counterEnabled: configRes.data.counter_enabled,
       statusPanelEnabled: configRes.data.status_panel_enabled
@@ -79,7 +75,6 @@ const App: React.FC = () => {
       const merged = [...INITIAL_TABLES];
       tableRes.data.forEach((dbT: any) => {
         const idx = merged.findIndex(t => t.id === dbT.id);
-        // Fix: Use currentOrder (camelCase) to match Table interface and fix TS error
         if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, currentOrder: dbT.current_order };
       });
       setTables(merged);
@@ -88,7 +83,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    notificationSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'menu') setIsCustomerView(true);
     
@@ -108,13 +102,14 @@ const App: React.FC = () => {
   };
 
   const handleUpdateStoreConfig = async (newCfg: StoreConfig) => {
-    setStoreConfig(newCfg);
+    const updatedCfg = { ...newCfg, tablesEnabled: false };
+    setStoreConfig(updatedCfg);
     await supabase.from('store_config').upsert({
       id: 1,
-      tables_enabled: false, // Mesas sempre desligadas conforme solicitado
-      delivery_enabled: newCfg.deliveryEnabled,
-      counter_enabled: newCfg.counterEnabled,
-      status_panel_enabled: newCfg.statusPanelEnabled
+      tables_enabled: false,
+      delivery_enabled: updatedCfg.deliveryEnabled,
+      counter_enabled: updatedCfg.counterEnabled,
+      status_panel_enabled: updatedCfg.statusPanelEnabled
     });
   };
 
@@ -125,17 +120,17 @@ const App: React.FC = () => {
         <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 relative z-20 flex-1 -mt-10 pb-40">
           {isStoreClosed ? (
             <div className="flex flex-col items-center justify-center pt-24 pb-32 text-center animate-in fade-in zoom-in duration-700">
-               <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-brand-orange max-w-md w-full relative overflow-hidden">
-                  <div className="bg-brand-orange text-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl ring-8 ring-orange-50">
+               <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-[#FF7F11] max-w-md w-full relative overflow-hidden">
+                  <div className="bg-[#FF7F11] text-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl ring-8 ring-orange-50">
                     <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   </div>
-                  <h2 className="text-4xl font-black italic uppercase tracking-tighter text-brand-dark mb-2 leading-none">Loja Fechada</h2>
+                  <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#1A1A1A] mb-2 leading-none">Loja Fechada</h2>
                   <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest mb-8">Nossas marmitas estão descansando!</p>
                   <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-8">
                     <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Funcionamos das:</p>
-                    <p className="text-sm font-black text-brand-dark uppercase italic tracking-tight">{STORE_INFO.hours}</p>
+                    <p className="text-sm font-black text-[#1A1A1A] uppercase italic tracking-tight">{STORE_INFO.hours}</p>
                   </div>
-                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-brand-green text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-all">
+                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-[#6C7A1D] text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-all">
                     <span>Dúvidas? Chame no WhatsApp</span>
                   </a>
                </div>
@@ -166,7 +161,6 @@ const App: React.FC = () => {
           </div>
         )}
         <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cartItems} onUpdateQuantity={(id, d) => setCartItems(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + d)} : i))} onRemove={id => setCartItems(p => p.filter(i => i.id !== id))} onAdd={() => {}} onPlaceOrder={async (ord) => {
-          // Gerencia IDs automáticos para entrega/balcão
           let tid = ord.tableId; 
           if (tid < 0) { 
             const range = tid === -900 ? [900, 949] : [950, 999]; 
@@ -187,8 +181,8 @@ const App: React.FC = () => {
           <div className="bg-[#FF7F11] w-20 h-20 rounded-full mx-auto mb-10 flex items-center justify-center shadow-lg">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
-          <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter">Gestão D.Moreira</h2>
-          <p className="text-[10px] font-bold text-gray-400 uppercase mb-10">Acesso Restrito Administrativo</p>
+          <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter">Ju Marmitas Caseiras</h2>
+          <p className="text-[10px] font-bold text-gray-400 uppercase mb-10">Acesso Administrativo</p>
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <input type="email" placeholder="E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
             <input type="password" placeholder="SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
@@ -204,13 +198,13 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFF9E5] p-6 font-sans">
       <AdminPanel 
-        tables={tables} menuItems={menuItems} categories={categories} audioEnabled={audioEnabled} onToggleAudio={() => setAudioEnabled(!audioEnabled)} onTestSound={() => notificationSound.current?.play()}
+        tables={tables} menuItems={menuItems} categories={categories} audioEnabled={audioEnabled} onToggleAudio={() => setAudioEnabled(!audioEnabled)} onTestSound={() => {}}
         onUpdateTable={async (id, status, ord) => { 
           if (status === 'free') await supabase.from('tables').delete().eq('id', id);
           else await supabase.from('tables').upsert({ id, status, current_order: ord || null });
           fetchData();
         }}
-        onAddToOrder={() => {}} // Não aplicável sem mesas
+        onAddToOrder={() => {}}
         onRefreshData={() => fetchData()} 
         onLogout={async () => { await supabase.auth.signOut(); setIsLoggedIn(false); }}
         onSaveProduct={async (p) => { 

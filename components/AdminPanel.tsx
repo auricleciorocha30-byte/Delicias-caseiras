@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Table, Order, Product, Category, Coupon, LoyaltyConfig, LoyaltyUser, OrderStatus, StoreConfig, CartItem, OrderType } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Table, Order, Product, Category, Coupon, LoyaltyConfig, OrderStatus, StoreConfig, CartItem } from '../types';
 import { CloseIcon, TrashIcon, VolumeIcon, EditIcon, PrinterIcon } from './Icons';
 import { supabase } from '../lib/supabase';
 import { STORE_INFO } from '../constants';
@@ -31,8 +31,8 @@ const STATUS_CFG: Record<string, any> = {
 };
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
-  tables = [], menuItems = [], categories = [], audioEnabled, onToggleAudio, onTestSound,
-  onUpdateTable, onRefreshData, onLogout, onSaveProduct, onDeleteProduct, dbStatus, onAddToOrder,
+  tables = [], menuItems = [], categories = [], onTestSound,
+  onUpdateTable, onRefreshData, onLogout, onSaveProduct, onDeleteProduct,
   storeConfig, onUpdateStoreConfig
 }) => {
   const [activeTab, setActiveTab] = useState<'delivery' | 'menu' | 'marketing' | 'setup'>('delivery');
@@ -65,9 +65,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const fetchMarketing = async () => {
     const { data: cData } = await supabase.from('coupons').select('*');
-    if (cData) setCoupons(cData.map(c => ({ id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, scopeType: c.scope_type, scopeValue: c.scope_value || '' })));
+    if (cData) setCoupons(cData.map(c => ({ id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, scopeType: c.scope_type as any, scopeValue: c.scope_value || '' })));
     const { data: lConfig } = await supabase.from('loyalty_config').select('*').maybeSingle();
-    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spending_goal: lConfig.spending_goal, scope_type: lConfig.scope_type || 'all', scope_value: lConfig.scope_value || '' });
+    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spendingGoal: lConfig.spending_goal, scopeType: lConfig.scope_type as any, scopeValue: lConfig.scope_value || '' });
   };
 
   const handleUpdateLoyalty = async (updates: Partial<LoyaltyConfig>) => {
@@ -114,7 +114,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     printWindow.document.close();
   };
 
-  const filteredMenu = menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const deliveryOrders = tables.filter(t => t.id >= 900 && t.id <= 949 && t.status === 'occupied');
   const takeawayOrders = tables.filter(t => t.id >= 950 && t.id <= 999 && t.status === 'occupied');
   const selectedOrder = tables.find(t => t.id === selectedOrderId);
@@ -128,22 +127,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             <VolumeIcon size={24} className="text-white"/>
           </button>
           <div className="text-left">
-            <h2 className="text-xl font-black italic text-white uppercase leading-none tracking-tighter">Ju Admin</h2>
-            <p className="text-[9px] text-[#FF7F11] uppercase font-black tracking-[0.2em] mt-1">Gestão Marmitas</p>
+            <h2 className="text-xl font-black italic text-[#FF7F11] uppercase leading-none tracking-tighter">Ju Admin</h2>
+            <p className="text-[9px] text-white uppercase font-black tracking-[0.2em] mt-1">Gestão Marmitas</p>
           </div>
         </div>
         <nav className="flex bg-gray-900 p-1.5 rounded-2xl gap-1">
           {(['delivery', 'menu', 'marketing', 'setup'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === tab ? 'bg-[#FF7F11] text-white shadow-xl' : 'text-gray-500 hover:text-white'}`}>
-              {tab === 'delivery' ? 'Pedidos' : tab === 'menu' ? 'Cardápio' : tab === 'marketing' ? 'Marketing' : 'Ajustes'}
+              {tab === 'delivery' ? 'Pedidos' : tab === 'menu' ? 'Meu Cardápio' : tab === 'marketing' ? 'Marketing' : 'Ajustes'}
             </button>
           ))}
         </nav>
-        <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Sair</button>
+        <div className="flex gap-2">
+          {/* FUNÇÃO VER MEU CARDÁPIO RESTAURADA */}
+          <button 
+            onClick={() => window.open(window.location.origin + '?view=menu', '_blank')}
+            className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+          >
+            <span>Ver Cardápio</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </button>
+          <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Sair</button>
+        </div>
       </div>
 
       <div className="min-h-[60vh]">
-        {/* ABA MARKETING */}
+        {/* ABA MARKETING (FIDELIDADE E CUPONS) */}
         {activeTab === 'marketing' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#6C7A1D]">
@@ -158,6 +167,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Meta de Gastos (R$)</p>
                   <input type="number" value={loyalty.spendingGoal} onChange={e => handleUpdateLoyalty({ spendingGoal: Number(e.target.value) })} className="w-full bg-gray-50 border-2 p-5 rounded-2xl font-black text-xl outline-none focus:border-[#6C7A1D]" />
                 </div>
+                <div>
+                   <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Aplicar em:</p>
+                   <select value={loyalty.scopeType} onChange={e => handleUpdateLoyalty({ scopeType: e.target.value as any, scopeValue: '' })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase">
+                      <option value="all">Todo o Cardápio</option>
+                      <option value="category">Uma Categoria</option>
+                      <option value="product">Um Produto</option>
+                   </select>
+                </div>
+                {loyalty.scopeType !== 'all' && (
+                  <input placeholder={loyalty.scopeType === 'category' ? 'NOME DA CATEGORIA' : 'ID DO PRODUTO'} value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase" />
+                )}
               </div>
             </div>
             <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-[#FF7F11]">
@@ -165,11 +185,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <h3 className="text-2xl font-black italic uppercase">🎫 Cupons</h3>
                   <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg">+ Novo Cupom</button>
                </div>
-               <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar">
+               <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
                   {coupons.map(c => (
-                    <div key={c.id} className="p-5 bg-gray-50 rounded-3xl border flex justify-between items-center">
-                      <span className="font-black uppercase text-sm">{c.code} - {c.percentage}% OFF</span>
-                      <button onClick={async () => { if(confirm('Excluir cupom?')) { await supabase.from('coupons').delete().eq('id', c.id); fetchMarketing(); } }} className="text-red-500"><TrashIcon size={18}/></button>
+                    <div key={c.id} className="p-5 bg-gray-50 rounded-3xl border flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-black uppercase text-sm text-[#1A1A1A]">{c.code} - {c.percentage}% OFF</span>
+                        <button onClick={async () => { if(confirm('Excluir cupom?')) { await supabase.from('coupons').delete().eq('id', c.id); fetchMarketing(); } }} className="text-red-500 hover:scale-110 transition-all"><TrashIcon size={18}/></button>
+                      </div>
+                      <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                        Aplica: {c.scopeType === 'all' ? 'Tudo' : c.scopeType === 'category' ? `Cat: ${c.scopeValue}` : `Prod: ${c.scopeValue}`}
+                      </div>
                     </div>
                   ))}
                </div>
@@ -204,7 +229,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         {activeTab === 'delivery' && (
           <div className="space-y-12">
             <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border">
-               <h3 className="text-xl font-black uppercase italic">Pedidos em Tempo Real</h3>
+               <h3 className="text-xl font-black uppercase italic">Fluxo de Pedidos</h3>
                <button onClick={() => { 
                  setManualOrderData({ customerName: '', customerPhone: '', address: '', items: [], type: 'delivery', paymentMethod: 'Pix' });
                  setIsManualOrderModalOpen(true); 
@@ -214,7 +239,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="space-y-6">
                 <h4 className="font-black uppercase text-[#FF7F11] ml-2">🚚 Entrega ({deliveryOrders.length})</h4>
                 {deliveryOrders.map(t => (
-                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className={`w-full bg-white p-6 rounded-[2.5rem] border-4 flex justify-between items-center shadow-md ${t.currentOrder?.status === 'pending' ? 'border-orange-500' : 'border-[#FF7F11]'}`}>
+                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className={`w-full bg-white p-6 rounded-[2.5rem] border-4 flex justify-between items-center shadow-md transition-all hover:scale-[1.02] ${t.currentOrder?.status === 'pending' ? 'border-orange-500' : 'border-[#FF7F11]'}`}>
                     <div className="text-left"><h5 className="font-black uppercase">{t.currentOrder?.customerName}</h5><p className="text-[9px] text-gray-400">ID: #{t.currentOrder?.id}</p></div>
                     <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[8px] font-black px-4 py-2 rounded-full uppercase`}>{STATUS_CFG[t.currentOrder?.status || 'pending'].label}</div>
                   </button>
@@ -223,7 +248,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="space-y-6">
                 <h4 className="font-black uppercase text-[#6C7A1D] ml-2">🏪 Balcão ({takeawayOrders.length})</h4>
                 {takeawayOrders.map(t => (
-                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className={`w-full bg-white p-6 rounded-[2.5rem] border-4 flex justify-between items-center shadow-md ${t.currentOrder?.status === 'pending' ? 'border-orange-500' : 'border-[#6C7A1D]'}`}>
+                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className={`w-full bg-white p-6 rounded-[2.5rem] border-4 flex justify-between items-center shadow-md transition-all hover:scale-[1.02] ${t.currentOrder?.status === 'pending' ? 'border-orange-500' : 'border-[#6C7A1D]'}`}>
                     <div className="text-left"><h5 className="font-black uppercase">{t.currentOrder?.customerName}</h5><p className="text-[9px] text-gray-400">ID: #{t.currentOrder?.id}</p></div>
                     <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[8px] font-black px-4 py-2 rounded-full uppercase`}>{STATUS_CFG[t.currentOrder?.status || 'pending'].label}</div>
                   </button>
@@ -240,7 +265,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <h3 className="text-2xl font-black italic uppercase">Meu Cardápio</h3>
               <div className="flex gap-4">
                 <button onClick={() => setIsCategoryModalOpen(true)} className="bg-gray-100 text-gray-600 px-6 py-4 rounded-2xl font-black text-[10px] uppercase shadow-sm">Categorias</button>
-                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none" />
+                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black outline-none focus:border-[#FF7F11]" />
                 <button onClick={() => { 
                   setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true, description: '', image: '' }); 
                   setIsProductModalOpen(true); 
@@ -248,13 +273,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-8">
-              {filteredMenu.map(item => (
-                <div key={item.id} className={`bg-gray-50 p-5 rounded-[3rem] border-2 relative shadow-sm ${!item.isAvailable ? 'opacity-40 grayscale' : 'border-transparent'}`}>
+              {menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
+                <div key={item.id} className={`bg-gray-50 p-5 rounded-[3rem] border-2 relative shadow-sm transition-all hover:shadow-lg ${!item.isAvailable ? 'opacity-40 grayscale' : 'border-transparent'}`}>
                   <img src={item.image} className="w-full aspect-square object-cover rounded-[2rem] mb-4" />
                   <h4 className="font-black text-[11px] uppercase truncate">{item.name}</h4>
                   <div className="flex gap-2 mt-4">
                     <button onClick={() => { setEditingProduct(item); setIsProductModalOpen(true); }} className="flex-1 bg-white p-3 rounded-xl shadow-sm text-blue-500 hover:bg-blue-100"><EditIcon size={18}/></button>
-                    <button onClick={() => { if(confirm('Excluir esta marmita permanentemente?')) onDeleteProduct(item.id); }} className="flex-1 bg-white p-3 rounded-xl shadow-sm text-red-500 hover:bg-red-100"><TrashIcon size={18}/></button>
+                    <button onClick={() => { if(confirm('Apagar esta marmita permanentemente?')) onDeleteProduct(item.id); }} className="flex-1 bg-white p-3 rounded-xl shadow-sm text-red-500 hover:bg-red-100"><TrashIcon size={18}/></button>
                   </div>
                 </div>
               ))}
@@ -269,7 +294,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl">
              <button onClick={() => setIsCategoryModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
              <h3 className="text-2xl font-black italic mb-8 uppercase text-center">Gestão de Categorias</h3>
-             <div className="space-y-4 mb-8">
+             <div className="space-y-4 mb-8 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
                 {categories.map(cat => (
                   <div key={cat.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border">
                     <span className="font-black uppercase text-xs">{cat.name}</span>
@@ -283,7 +308,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                await supabase.from('categories').insert([{ name: newCatName.trim() }]);
                setNewCatName(''); onRefreshData();
              }} className="flex gap-2">
-                <input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="NOVA CATEGORIA" className="flex-1 bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none" />
+                <input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="NOME DA CATEGORIA" className="flex-1 bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#FF7F11]" />
                 <button type="submit" className="bg-[#1A1A1A] text-[#FF7F11] px-6 rounded-2xl font-black text-[10px] uppercase">ADD</button>
              </form>
           </div>
@@ -293,24 +318,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* MODAL PRODUTO */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh]">
+          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Nova'} Marmita</h3>
             <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-5">
-              <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DA MARMITA" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none" required />
-              <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCRIÇÃO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black h-24 resize-none" />
+              <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black uppercase outline-none" required />
+              <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="O QUE VEM NA MARMITA?" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black h-24 resize-none" />
               <div className="grid grid-cols-2 gap-4">
                 <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black" required />
                 <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black">
                   {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
-              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black" />
+              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="LINK DA FOTO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[11px] font-black" />
               <div className="flex items-center gap-4 bg-gray-100 p-5 rounded-2xl">
                 <input type="checkbox" checked={editingProduct?.isAvailable} onChange={e => setEditingProduct({...editingProduct, isAvailable: e.target.checked})} className="w-6 h-6 rounded-lg accent-[#FF7F11]" />
-                <label className="text-[10px] font-black uppercase">Exibir no Cardápio</label>
+                <label className="text-[10px] font-black uppercase">Disponível no Site</label>
               </div>
-              <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs">Salvar Marmita</button>
+              <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Salvar Marmita</button>
             </form>
           </div>
         </div>
@@ -322,16 +347,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="bg-white w-full max-w-4xl rounded-[4rem] p-12 relative shadow-2xl flex flex-col md:flex-row gap-10 max-h-[90vh] overflow-hidden">
              <button onClick={() => setIsManualOrderModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={24}/></button>
              <div className="flex-1 flex flex-col gap-6 overflow-y-auto no-scrollbar pr-4">
-                <h3 className="text-2xl font-black italic uppercase">Novo Lançamento</h3>
+                <h3 className="text-2xl font-black italic uppercase">Lançar Pedido</h3>
                 <input placeholder="NOME DO CLIENTE" value={manualOrderData.customerName} onChange={e => setManualOrderData({...manualOrderData, customerName: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase" />
                 <div className="flex gap-2">
                   <button onClick={() => setManualOrderData({...manualOrderData, type: 'delivery'})} className={`flex-1 py-4 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${manualOrderData.type === 'delivery' ? 'bg-[#FF7F11] text-white border-[#FF7F11]' : 'bg-white'}`}>Entrega</button>
                   <button onClick={() => setManualOrderData({...manualOrderData, type: 'takeaway'})} className={`flex-1 py-4 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${manualOrderData.type === 'takeaway' ? 'bg-[#6C7A1D] text-white border-[#6C7A1D]' : 'bg-white'}`}>Balcão</button>
                 </div>
                 
-                {/* CAMPO DE ENDEREÇO RESTAURADO PARA O MANUAL */}
                 {manualOrderData.type === 'delivery' && (
-                  <textarea placeholder="ENDEREÇO COMPLETO DO CLIENTE" value={manualOrderData.address} onChange={e => setManualOrderData({...manualOrderData, address: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase h-24 resize-none focus:border-[#FF7F11]" required />
+                  <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                    <p className="text-[9px] font-black text-gray-400 uppercase ml-2">Endereço de Entrega</p>
+                    <textarea placeholder="RUA, NÚMERO, BAIRRO..." value={manualOrderData.address} onChange={e => setManualOrderData({...manualOrderData, address: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase h-24 resize-none focus:border-[#FF7F11]" required />
+                  </div>
                 )}
 
                 <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 space-y-3">
@@ -341,15 +368,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <span>{item.quantity}x {item.name}</span>
                       <div className="flex items-center gap-3">
                         <span className="text-[#FF7F11]">R$ {(item.price * item.quantity).toFixed(2)}</span>
-                        <button onClick={() => setManualOrderData(p => ({ ...p, items: p.items.filter(i => i.id !== item.id) }))} className="text-red-500"><TrashIcon size={14}/></button>
+                        <button onClick={() => setManualOrderData(p => ({ ...p, items: p.items.filter(i => i.id !== item.id) }))} className="text-red-500 hover:scale-110 transition-all"><TrashIcon size={14}/></button>
                       </div>
                     </div>
                   ))}
-                  {manualOrderData.items.length === 0 && <p className="text-[10px] text-gray-300 italic">Nenhum item adicionado...</p>}
+                  {manualOrderData.items.length === 0 && <p className="text-[10px] text-gray-300 italic">Vazio...</p>}
                 </div>
 
                 <div className="space-y-2">
-                   <p className="text-[9px] font-black text-gray-400 uppercase">Pagamento</p>
+                   <p className="text-[9px] font-black text-gray-400 uppercase ml-2">Pagamento</p>
                    <select value={manualOrderData.paymentMethod} onChange={e => setManualOrderData({...manualOrderData, paymentMethod: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black">
                       <option value="Pix">PIX</option>
                       <option value="Dinheiro">DINHEIRO</option>
@@ -360,7 +387,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <button onClick={() => {
                    if(!manualOrderData.customerName.trim()) return alert('Nome do cliente obrigatório');
                    if(manualOrderData.type === 'delivery' && !manualOrderData.address.trim()) return alert('Endereço obrigatório para entrega');
-                   if(manualOrderData.items.length === 0) return alert('Adicione itens ao pedido');
+                   if(manualOrderData.items.length === 0) return alert('Adicione pelo menos uma marmita');
 
                    const total = manualOrderData.items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
                    const range = manualOrderData.type === 'delivery' ? [900, 949] : [950, 999];
@@ -380,10 +407,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                      address: manualOrderData.type === 'delivery' ? manualOrderData.address : undefined
                    });
                    setIsManualOrderModalOpen(false);
-                }} className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Confirmar Lançamento ✅</button>
+                }} className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">Concluir Pedido ✅</button>
              </div>
              <div className="flex-1 bg-gray-50 p-8 rounded-[3rem] overflow-y-auto no-scrollbar border-l border-white shadow-inner">
-                <h4 className="text-[11px] font-black uppercase text-gray-400 mb-6 tracking-widest">Selecionar Marmitas</h4>
+                <h4 className="text-[11px] font-black uppercase text-gray-400 mb-6 tracking-widest">Cardápio Disponível</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {menuItems.filter(i => i.isAvailable).map(prod => (
                     <button key={prod.id} onClick={() => setManualOrderData(p => {
@@ -404,21 +431,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* MODAL CUPOM */}
       {isCouponModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl">
+          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh]">
              <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-8 right-8 p-4 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">Novo Cupom de Desconto</h3>
+             <h3 className="text-2xl font-black italic mb-10 uppercase text-center">Novo Cupom</h3>
              <form onSubmit={async (e) => {
                e.preventDefault();
                if(!editingCoupon.code || !editingCoupon.percentage) return;
-               await supabase.from('coupons').insert([{ code: editingCoupon.code.toUpperCase().trim(), percentage: editingCoupon.percentage, is_active: true, scope_type: 'all' }]);
+               await supabase.from('coupons').insert([{ 
+                  code: editingCoupon.code.toUpperCase().trim(), 
+                  percentage: editingCoupon.percentage, 
+                  is_active: true, 
+                  scope_type: editingCoupon.scopeType,
+                  scope_value: editingCoupon.scopeValue
+               }]);
                setIsCouponModalOpen(false); fetchMarketing();
              }} className="space-y-6">
-                <input placeholder="CÓDIGO (EX: MARMITA20)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
+                <input placeholder="CÓDIGO (EX: MARMITA10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
                 <div className="space-y-2">
-                   <p className="text-[10px] font-black text-gray-400 uppercase ml-2">Porcentagem de Desconto</p>
-                   <input type="number" placeholder="EX: 10" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black" required />
+                   <p className="text-[10px] font-black text-gray-400 uppercase ml-2">% Desconto</p>
+                   <input type="number" placeholder="EX: 10" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black outline-none" required />
                 </div>
-                <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs">Criar Cupom Ativo</button>
+                <div className="space-y-2">
+                   <p className="text-[10px] font-black text-gray-400 uppercase ml-2">Aplicar em:</p>
+                   <select value={editingCoupon?.scopeType} onChange={e => setEditingCoupon({...editingCoupon, scopeType: e.target.value, scopeValue: ''})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase">
+                      <option value="all">Tudo</option>
+                      <option value="category">Uma Categoria</option>
+                      <option value="product">Um Produto</option>
+                   </select>
+                </div>
+                {editingCoupon?.scopeType !== 'all' && (
+                  <input placeholder={editingCoupon?.scopeType === 'category' ? 'NOME DA CATEGORIA' : 'ID DO PRODUTO'} value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-5 text-xs font-black uppercase" required />
+                )}
+                <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Ativar Cupom</button>
              </form>
           </div>
         </div>
@@ -428,32 +472,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       {selectedOrderId && selectedOrder && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setSelectedOrderId(null)} />
-           <div className="relative bg-white w-full max-w-4xl h-[80vh] rounded-[3rem] p-10 overflow-y-auto flex flex-col border-t-8 border-[#FF7F11]">
+           <div className="relative bg-white w-full max-w-4xl h-[80vh] rounded-[3rem] p-10 overflow-y-auto flex flex-col border-t-8 border-[#FF7F11] no-scrollbar">
               <div className="flex justify-between items-start mb-8">
                  <div>
                     <h3 className="text-3xl font-black uppercase italic text-[#1A1A1A]">{selectedOrder.currentOrder?.customerName}</h3>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                      #{selectedOrder.currentOrder?.id} • {selectedOrder.currentOrder?.orderType === 'delivery' ? 'Entrega' : 'Balcão'}
+                      #{selectedOrder.currentOrder?.id} • {selectedOrder.currentOrder?.orderType === 'delivery' ? 'Entrega 🚚' : 'Balcão 🏪'}
                     </p>
                  </div>
                  <div className="flex gap-4">
-                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-gray-900 text-white p-4 rounded-full shadow-lg"><PrinterIcon size={24}/></button>
-                    <button onClick={() => setSelectedOrderId(null)} className="p-4 bg-gray-100 rounded-full"><CloseIcon size={24}/></button>
+                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-gray-900 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-all"><PrinterIcon size={24}/></button>
+                    <button onClick={() => setSelectedOrderId(null)} className="p-4 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={24}/></button>
                  </div>
               </div>
               <div className="flex-1 space-y-8">
                  <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 shadow-inner">
-                    <p className="text-[9px] font-black text-gray-400 mb-4 uppercase tracking-widest">Controle de Produção</p>
+                    <p className="text-[9px] font-black text-gray-400 mb-4 uppercase tracking-widest">Acompanhamento</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                        {(['pending', 'preparing', 'ready', 'delivered'] as OrderStatus[]).map(s => (
-                          <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-4 rounded-2xl text-[9px] font-black uppercase border-4 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-[#FF7F11] text-white border-[#1A1A1A]' : 'bg-white text-gray-400'}`}>
+                          <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-4 rounded-2xl text-[9px] font-black uppercase border-4 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-[#FF7F11] text-white border-[#1A1A1A] shadow-md' : 'bg-white text-gray-400 hover:text-gray-600'}`}>
                              {STATUS_CFG[s].label}
                           </button>
                        ))}
                     </div>
                  </div>
                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Itens Pedidos</h4>
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Itens Escolhidos</h4>
                     {selectedOrder.currentOrder?.items.map((item, idx) => (
                        <div key={idx} className="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
                           <img src={item.image} className="w-16 h-16 rounded-2xl object-cover" />
@@ -466,19 +510,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     ))}
                  </div>
                  {selectedOrder.currentOrder?.address && (
-                   <div className="bg-[#1A1A1A] p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
+                   <div className="bg-[#1A1A1A] p-8 rounded-3xl text-white shadow-xl relative overflow-hidden border-l-8 border-[#FF7F11]">
                       <div className="absolute top-0 right-0 p-4 opacity-10"><svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" /></svg></div>
-                      <p className="text-[9px] font-black text-[#FF7F11] mb-2 uppercase tracking-widest">Endereço para Entrega</p>
+                      <p className="text-[9px] font-black text-[#FF7F11] mb-2 uppercase tracking-widest">Destino</p>
                       <p className="text-sm font-bold uppercase leading-relaxed">{selectedOrder.currentOrder.address}</p>
                    </div>
                  )}
               </div>
-              <div className="pt-10 mt-10 border-t flex justify-between items-center">
-                 <div className="text-left">
-                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Valor Final</p>
+              <div className="pt-10 mt-10 border-t flex flex-col md:flex-row justify-between items-center gap-6">
+                 <div className="text-center md:text-left">
+                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Total do Pedido</p>
                     <p className="text-4xl font-black italic text-[#1A1A1A]">R$ {selectedOrder.currentOrder?.finalTotal.toFixed(2)}</p>
                  </div>
-                 <button onClick={() => { if(confirm('Concluir e arquivar este pedido?')) { onUpdateTable(selectedOrder.id, 'free'); setSelectedOrderId(null); } }} className="bg-[#6C7A1D] text-white px-12 py-6 rounded-[2rem] font-black uppercase text-[11px] shadow-2xl hover:scale-105 active:scale-95 transition-all">Finalizar Pedido ✅</button>
+                 <button onClick={() => { if(confirm('Marcar como entregue e remover da lista?')) { onUpdateTable(selectedOrder.id, 'free'); setSelectedOrderId(null); } }} className="w-full md:w-auto bg-[#6C7A1D] text-white px-12 py-6 rounded-[2rem] font-black uppercase text-[11px] shadow-2xl hover:brightness-110 active:scale-95 transition-all">Concluir Pedido ✅</button>
               </div>
            </div>
         </div>

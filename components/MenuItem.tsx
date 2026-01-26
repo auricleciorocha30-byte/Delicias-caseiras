@@ -12,13 +12,17 @@ const MenuItem: React.FC<MenuItemProps> = ({ product, onAdd, activeCoupons }) =>
   const isKit = product.category === 'Kits & Planos';
   const isAvailable = product.isAvailable !== false;
 
+  // CORREÇÃO: Lógica de exibição de desconto específica para o item
   const validCoupons = activeCoupons.filter(c => {
     if (!c.isActive) return false;
     if (c.scopeType === 'all') return true;
     
-    const scopeValues = (c.scopeValue || '').split(',');
-    if (c.scopeType === 'product') return scopeValues.includes(product.id);
-    if (c.scopeType === 'category') return scopeValues.includes(product.category);
+    if (c.scopeType === 'category') {
+       return (c.scopeValue || '').toLowerCase().trim() === product.category.toLowerCase().trim();
+    }
+    if (c.scopeType === 'product') {
+       return (c.scopeValue || '').trim() === product.id.trim();
+    }
     
     return false;
   });

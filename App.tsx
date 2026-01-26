@@ -45,8 +45,13 @@ const App: React.FC = () => {
   const [activeAlert, setActiveAlert] = useState<any>(null);
   
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({
-    tablesEnabled: true, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: false
+    tablesEnabled: false, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: false
   });
+
+  const isStoreClosed = useMemo(() => {
+    // Agora verifica se os serviços que permitem pedidos estão todos desligados
+    return !storeConfig.deliveryEnabled && !storeConfig.counterEnabled;
+  }, [storeConfig]);
 
   const notificationSound = useRef<HTMLAudioElement | null>(null);
 
@@ -74,6 +79,7 @@ const App: React.FC = () => {
       const merged = [...INITIAL_TABLES];
       tableRes.data.forEach((dbT: any) => {
         const idx = merged.findIndex(t => t.id === dbT.id);
+        // Fix: Use currentOrder (camelCase) to match Table interface and fix TS error
         if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, currentOrder: dbT.current_order };
       });
       setTables(merged);
@@ -101,12 +107,11 @@ const App: React.FC = () => {
     setIsLoadingLogin(false);
   };
 
-  // Add handleUpdateStoreConfig to fix missing reference error
   const handleUpdateStoreConfig = async (newCfg: StoreConfig) => {
     setStoreConfig(newCfg);
     await supabase.from('store_config').upsert({
       id: 1,
-      tables_enabled: newCfg.tablesEnabled,
+      tables_enabled: false, // Mesas sempre desligadas conforme solicitado
       delivery_enabled: newCfg.deliveryEnabled,
       counter_enabled: newCfg.counterEnabled,
       status_panel_enabled: newCfg.statusPanelEnabled
@@ -118,29 +123,57 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-[#FFF9E5] flex flex-col font-sans">
         <HeaderComp />
         <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 relative z-20 flex-1 -mt-10 pb-40">
-          <div className="flex overflow-x-auto gap-3 pb-10 no-scrollbar pt-2">
-            {['Todos', ...categories.map(c => c.name)].map(cat => (
-              <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-8 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.15em] transition-all shadow-md ${selectedCategory === cat ? 'bg-[#FF7F11] text-white' : 'bg-white text-gray-500'}`}>{cat}</button>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {menuItems.filter(i => (selectedCategory === 'Todos' || i.category === selectedCategory) && i.isAvailable).map(item => <MenuItem key={item.id} product={item} activeCoupons={activeCoupons} onAdd={(p) => setCartItems(prev => { const ex = prev.find(i => i.id === p.id); if (ex) return prev.map(i => i.id === p.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, { ...p, quantity: 1 }]; })} />)}
-          </div>
+          {isStoreClosed ? (
+            <div className="flex flex-col items-center justify-center pt-24 pb-32 text-center animate-in fade-in zoom-in duration-700">
+               <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-brand-orange max-w-md w-full relative overflow-hidden">
+                  <div className="bg-brand-orange text-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl ring-8 ring-orange-50">
+                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </div>
+                  <h2 className="text-4xl font-black italic uppercase tracking-tighter text-brand-dark mb-2 leading-none">Loja Fechada</h2>
+                  <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest mb-8">Nossas marmitas estão descansando!</p>
+                  <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-8">
+                    <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Funcionamos das:</p>
+                    <p className="text-sm font-black text-brand-dark uppercase italic tracking-tight">{STORE_INFO.hours}</p>
+                  </div>
+                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-brand-green text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-all">
+                    <span>Dúvidas? Chame no WhatsApp</span>
+                  </a>
+               </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex overflow-x-auto gap-3 pb-10 no-scrollbar pt-2">
+                {['Todos', ...categories.map(c => c.name)].map(cat => (
+                  <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-8 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.15em] transition-all shadow-md ${selectedCategory === cat ? 'bg-[#FF7F11] text-white' : 'bg-white text-gray-500'}`}>{cat}</button>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                {menuItems.filter(i => (selectedCategory === 'Todos' || i.category === selectedCategory) && i.isAvailable).map(item => <MenuItem key={item.id} product={item} activeCoupons={activeCoupons} onAdd={(p) => setCartItems(prev => { const ex = prev.find(i => i.id === p.id); if (ex) return prev.map(i => i.id === p.id ? {...i, quantity: i.quantity + 1} : i); return [...prev, { ...p, quantity: 1 }]; })} />)}
+              </div>
+            </>
+          )}
         </main>
         <Footer />
-        {cartItems.length > 0 && (
+        {!isStoreClosed && cartItems.length > 0 && (
           <div className="fixed bottom-10 left-0 right-0 flex justify-center px-8 z-40">
             <button onClick={() => setIsCartOpen(true)} className="w-full max-w-lg bg-[#1A1A1A] text-white rounded-[3rem] p-6 flex items-center justify-between shadow-2xl ring-8 ring-[#FF7F11]/20 active:scale-95 transition-all">
               <div className="flex items-center gap-5">
                 <div className="bg-[#FF7F11] text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black">{cartItems.reduce((a,b)=>a+b.quantity,0)}</div>
                 <span className="font-black text-[12px] uppercase">Minhas Marmitas</span>
               </div>
-              <span className="font-black text-[#FF7F11] text-2xl italic">R$ {cartItems.reduce((a,b)=>a+(b.price*b.quantity),0).toFixed(2)}</span>
+              <span className="font-black text-[#FF7F11] text-2xl italic">R$ {cartItems.reduce((a,b)=>a+(b.price*b.quantity),0).toFixed(2).replace('.', ',')}</span>
             </button>
           </div>
         )}
         <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cartItems} onUpdateQuantity={(id, d) => setCartItems(p => p.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + d)} : i))} onRemove={id => setCartItems(p => p.filter(i => i.id !== id))} onAdd={() => {}} onPlaceOrder={async (ord) => {
-          const { error } = await supabase.from('tables').upsert({ id: ord.tableId, status: 'occupied', current_order: ord });
+          // Gerencia IDs automáticos para entrega/balcão
+          let tid = ord.tableId; 
+          if (tid < 0) { 
+            const range = tid === -900 ? [900, 949] : [950, 999]; 
+            const free = tables.find(t => t.id >= range[0] && t.id <= range[1] && t.status === 'free'); 
+            tid = free?.id || range[0]; 
+          }
+          const { error } = await supabase.from('tables').upsert({ id: tid, status: 'occupied', current_order: { ...ord, tableId: tid } });
           if (!error) { setCartItems([]); return true; } return false;
         }} storeConfig={storeConfig} />
       </div>
@@ -154,13 +187,13 @@ const App: React.FC = () => {
           <div className="bg-[#FF7F11] w-20 h-20 rounded-full mx-auto mb-10 flex items-center justify-center shadow-lg">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
-          <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter">Painel Administrativo</h2>
-          <p className="text-[10px] font-bold text-gray-400 uppercase mb-10">Acesso Restrito Ju Marmitas</p>
+          <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter">Gestão D.Moreira</h2>
+          <p className="text-[10px] font-bold text-gray-400 uppercase mb-10">Acesso Restrito Administrativo</p>
           <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <input type="email" placeholder="SEU E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
-            <input type="password" placeholder="SUA SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
+            <input type="email" placeholder="E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
+            <input type="password" placeholder="SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11] text-center" required />
             <button type="submit" disabled={isLoadingLogin} className="w-full bg-[#1A1A1A] text-[#FF7F11] font-black py-6 rounded-3xl uppercase text-[11px] shadow-xl hover:scale-105 transition-all">
-              {isLoadingLogin ? 'Entrando...' : 'Acessar Sistema'}
+              {isLoadingLogin ? 'Entrando...' : 'Entrar no Sistema'}
             </button>
           </form>
         </div>
@@ -177,16 +210,7 @@ const App: React.FC = () => {
           else await supabase.from('tables').upsert({ id, status, current_order: ord || null });
           fetchData();
         }}
-        onAddToOrder={async (tableId, product) => {
-          const table = tables.find(t => t.id === tableId);
-          const items = table?.currentOrder ? [...table.currentOrder.items] : [];
-          const ex = items.findIndex(i => i.id === product.id);
-          if (ex >= 0) items[ex].quantity += 1; else items.push({ ...product, quantity: 1 });
-          const total = items.reduce((a, b) => a + (b.price * b.quantity), 0);
-          const order = { id: table?.currentOrder?.id || Math.random().toString(36).substr(2, 6).toUpperCase(), customerName: `Mesa ${tableId}`, items, total, finalTotal: total, paymentMethod: 'Pendente', timestamp: new Date().toISOString(), tableId, status: 'preparing' as const, orderType: 'table' as const };
-          await supabase.from('tables').upsert({ id: tableId, status: 'occupied', current_order: order });
-          fetchData();
-        }}
+        onAddToOrder={() => {}} // Não aplicável sem mesas
         onRefreshData={() => fetchData()} 
         onLogout={async () => { await supabase.auth.signOut(); setIsLoggedIn(false); }}
         onSaveProduct={async (p) => { 

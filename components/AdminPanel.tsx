@@ -60,7 +60,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [loyalty, setLoyalty] = useState<LoyaltyConfig>({ isActive: false, spendingGoal: 100, scopeType: 'all', scopeValue: '' });
   const [loyaltyUsers, setLoyaltyUsers] = useState<LoyaltyUser[]>([]);
 
-  // Carrega dados de marketing sempre que a aba ativa mudar para marketing
   useEffect(() => {
     if (activeTab === 'marketing') fetchMarketing();
   }, [activeTab]);
@@ -80,14 +79,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       scopeType: lConfig.scope_type as any, scopeValue: lConfig.scope_value || '' 
     });
     
-    // Busca Ranking de Usuários (CORREÇÃO DE EXIBIÇÃO)
+    // Busca Ranking de Usuários
     const { data: lUsers } = await supabase.from('loyalty_users').select('*').order('accumulated', { ascending: false });
     if (lUsers) {
       setLoyaltyUsers(lUsers.map(u => ({ 
         phone: u.phone, 
-        name: u.name || 'Sem Nome', 
+        name: u.name || 'Cliente sem nome', 
         accumulated: Number(u.accumulated || 0) 
       })));
+    }
+  };
+
+  const handleDeleteLoyaltyUser = async (phone: string) => {
+    if (confirm('Deseja excluir este cliente do programa de fidelidade? Esta ação é irreversível.')) {
+      const { error } = await supabase.from('loyalty_users').delete().eq('phone', phone);
+      if (!error) fetchMarketing();
+      else alert('Erro ao excluir cliente.');
     }
   };
 
@@ -309,7 +316,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
-        {/* ABA MARKETING (FIDELIDADE E CUPONS) */}
+        {/* ABA MARKETING */}
         {activeTab === 'marketing' && (
           <div className="space-y-10">
             {/* CONFIGURAÇÃO FIDELIDADE */}
@@ -361,7 +368,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div key={c.id} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-sm">
                     <h4 className="text-2xl font-black italic text-brand-orange mb-1 tracking-tighter">{c.code}</h4>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{c.percentage}% OFF • {c.isActive ? 'Ativo' : 'Inativo'}</p>
-                    <p className="text-[8px] font-black text-gray-300 uppercase mt-2">Foco: {c.scopeType === 'all' ? 'Tudo' : c.scopeType === 'category' ? 'Categoria' : 'Produto'}</p>
+                    <p className="text-[8px] font-black text-gray-300 uppercase mt-2">Escopo: {c.scopeType === 'all' ? 'Tudo' : c.scopeType === 'category' ? 'Categoria' : 'Produto'}</p>
                     <button onClick={() => handleDeleteCoupon(c.id)} className="mt-4 p-3 bg-white text-red-500 rounded-xl shadow-sm hover:bg-red-50 transition-all"><TrashIcon size={18}/></button>
                   </div>
                 ))}
@@ -369,13 +376,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
 
-            {/* RANKING FIDELIDADE */}
+            {/* RANKING FIDELIDADE COM EXCLUSÃO */}
             <div className="bg-white p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-dark">
               <h3 className="text-2xl font-black italic uppercase mb-10">Ranking de Clientes</h3>
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left">
                   <thead className="border-b-2 text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                    <tr><th className="pb-4">Cliente</th><th className="pb-4">WhatsApp</th><th className="pb-4 text-right">Acumulado</th></tr>
+                    <tr><th className="pb-4">Cliente</th><th className="pb-4">WhatsApp</th><th className="pb-4 text-right">Acumulado</th><th className="pb-4 text-center">Ações</th></tr>
                   </thead>
                   <tbody className="divide-y text-[11px] font-bold">
                     {loyaltyUsers.map(user => (
@@ -383,9 +390,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <td className="py-5 uppercase truncate max-w-[150px]">{user.name}</td>
                         <td className="py-5 font-mono">{user.phone}</td>
                         <td className="py-5 text-right text-brand-orange font-black">R$ {user.accumulated.toFixed(2)}</td>
+                        <td className="py-5 text-center">
+                          <button onClick={() => handleDeleteLoyaltyUser(user.phone)} className="text-red-400 hover:text-red-600 transition-colors p-2">
+                             <TrashIcon size={16}/>
+                          </button>
+                        </td>
                       </tr>
                     ))}
-                    {loyaltyUsers.length === 0 && <tr><td colSpan={3} className="py-10 text-center text-gray-400 uppercase font-black text-[10px] opacity-30">Nenhum cliente no programa</td></tr>}
+                    {loyaltyUsers.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 uppercase font-black text-[10px] opacity-30">Nenhum cliente no programa</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -505,42 +517,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* MODAL DETALHES PEDIDO */}
-      {selectedOrderId && selectedOrder && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
-           <div className="relative bg-white w-full max-w-2xl h-[80vh] rounded-[2.5rem] p-10 overflow-y-auto flex flex-col border-t-8 border-brand-orange shadow-2xl">
-              <div className="flex justify-between items-start mb-6">
-                 <div><h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-brand-dark">{selectedOrder.currentOrder?.customerName}</h3><p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">#{selectedOrder.currentOrder?.id}</p></div>
-                 <div className="flex gap-2">
-                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-brand-dark text-brand-orange p-3 rounded-full hover:scale-110 shadow-lg transition-all"><PrinterIcon size={20}/></button>
-                    <button onClick={() => setSelectedOrderId(null)} className="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={20}/></button>
-                 </div>
-              </div>
-              <div className="flex-1 space-y-6">
-                 <div className="bg-gray-50 p-6 rounded-2xl border">
-                    <p className="text-[8px] font-black text-gray-400 mb-4 uppercase tracking-widest">Gestão de Status</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                       {(['pending', 'preparing', 'ready', 'delivered'] as OrderStatus[]).map(s => (
-                          <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-3 rounded-xl text-[8px] font-black uppercase border-2 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-brand-orange text-white border-brand-dark shadow-md' : 'bg-white text-gray-400 border-gray-100'}`}>{STATUS_CFG[s].label}</button>
-                       ))}
-                    </div>
-                 </div>
-                 <div className="space-y-2">
-                    {selectedOrder.currentOrder?.items.map((item, idx) => (
-                       <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                          <img src={item.image} onError={e => e.currentTarget.src='https://placehold.co/100x100'} className="w-12 h-12 rounded-lg object-cover" />
-                          <div className="flex-1"><p className="font-black text-[10px] uppercase leading-tight text-brand-dark">{item.name}</p><p className="text-[9px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p></div>
-                          <span className="font-black italic text-brand-orange text-xs">R$ {(item.price * item.quantity).toFixed(2)}</span>
-                       </div>
-                    ))}
-                 </div>
-              </div>
-              <div className="pt-6 mt-6 border-t flex justify-between items-center"><div className="text-left"><p className="text-[9px] text-gray-400 font-black uppercase">Total</p><p className="text-3xl font-black italic tracking-tighter">R$ {selectedOrder.currentOrder?.finalTotal.toFixed(2)}</p></div><button onClick={() => handleCompleteOrder(selectedOrder)} className="bg-brand-green text-white px-10 py-5 rounded-2xl font-black uppercase text-[10px] shadow-xl hover:brightness-110 active:scale-95 transition-all">Concluir ✅</button></div>
-           </div>
-        </div>
-      )}
-
-      {/* MODAIS PRODUTO E CATEGORIA... (Mantidos conforme o App.tsx anterior) */}
+      {/* MODAIS PRODUTO E CATEGORIA... */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[3rem] p-12 relative shadow-2xl overflow-y-auto max-h-[95vh] no-scrollbar">

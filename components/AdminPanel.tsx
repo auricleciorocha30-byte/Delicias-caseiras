@@ -45,7 +45,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [editingCoupon, setEditingCoupon] = useState<Partial<Coupon>>({ code: '', percentage: 0, isActive: true, scopeType: 'all', scopeValue: '' });
   const [isManualOrderModalOpen, setIsManualOrderModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -55,19 +55,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [loyalty, setLoyalty] = useState<LoyaltyConfig>({ isActive: false, spendingGoal: 100, scopeType: 'all', scopeValue: '' });
   const [loyaltyUsers, setLoyaltyUsers] = useState<LoyaltyUser[]>([]);
 
-  // Pedido Manual State
-  const [manualOrderItems, setManualOrderItems] = useState<CartItem[]>([]);
-  const [manualCustomer, setManualCustomer] = useState({ name: '', phone: '', address: '', type: 'delivery' as any });
-
   useEffect(() => {
     if (activeTab === 'marketing') fetchMarketing();
   }, [activeTab]);
 
   const fetchMarketing = async () => {
     const { data: cData } = await supabase.from('coupons').select('*');
-    if (cData) setCoupons(cData.map(c => ({ id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, scopeType: c.scope_type as any, scopeValue: c.scope_value || '' })));
+    if (cData) setCoupons(cData.map(c => ({ 
+      id: c.id, 
+      code: c.code, 
+      percentage: c.percentage, 
+      isActive: c.is_active, 
+      scopeType: c.scope_type as any, 
+      scopeValue: c.scope_value || '' 
+    })));
+    
     const { data: lConfig } = await supabase.from('loyalty_config').select('*').maybeSingle();
-    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spendingGoal: Number(lConfig.spending_goal), scopeType: lConfig.scope_type as any, scopeValue: lConfig.scope_value || '' });
+    if (lConfig) setLoyalty({ 
+      isActive: lConfig.is_active, 
+      spendingGoal: Number(lConfig.spending_goal), 
+      scopeType: lConfig.scope_type as any, 
+      scopeValue: lConfig.scope_value || '' 
+    });
+    
     const { data: lUsers } = await supabase.from('loyalty_users').select('*').order('accumulated', { ascending: false });
     if (lUsers) setLoyaltyUsers(lUsers.map(u => ({ phone: u.phone, name: u.name, accumulated: Number(u.accumulated) })));
   };
@@ -75,7 +85,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleUpdateLoyalty = async (updates: Partial<LoyaltyConfig>) => {
     const next = { ...loyalty, ...updates };
     setLoyalty(next);
-    await supabase.from('loyalty_config').upsert({ id: 1, is_active: next.isActive, spending_goal: next.spendingGoal, scope_type: next.scopeType, scope_value: next.scopeValue });
+    await supabase.from('loyalty_config').upsert({ 
+      id: 1, 
+      is_active: next.isActive, 
+      spending_goal: next.spendingGoal, 
+      scope_type: next.scopeType, 
+      scope_value: next.scopeValue 
+    });
+  };
+
+  const handleSaveCoupon = async () => {
+    if (!editingCoupon.code) return;
+    const { error } = await supabase.from('coupons').upsert({
+      id: editingCoupon.id || undefined,
+      code: editingCoupon.code.toUpperCase(),
+      percentage: editingCoupon.percentage,
+      is_active: editingCoupon.isActive,
+      scope_type: editingCoupon.scopeType,
+      scope_value: editingCoupon.scopeValue
+    });
+    if (!error) {
+      setIsCouponModalOpen(false);
+      fetchMarketing();
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (confirm('Excluir este cupom?')) {
+      await supabase.from('coupons').delete().eq('id', id);
+      fetchMarketing();
+    }
   };
 
   const handleAddCategory = async () => {
@@ -151,6 +190,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     printWindow.document.close();
   };
 
+  // Pedido Manual State
+  const [manualOrderItems, setManualOrderItems] = useState<CartItem[]>([]);
+  const [manualCustomer, setManualCustomer] = useState({ name: '', phone: '', address: '', type: 'delivery' as any });
+
   const deliveryOrders = tables.filter(t => t.id >= 900 && t.id <= 949 && t.status === 'occupied');
   const takeawayOrders = tables.filter(t => t.id >= 950 && t.id <= 999 && t.status === 'occupied');
   const selectedOrder = tables.find(t => t.id === selectedOrderId);
@@ -213,7 +256,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </button>
                </div>
                <div className="flex items-center justify-between p-6 bg-gray-50 rounded-2xl border-2 border-dashed">
-                  <div><p className="font-black text-[11px] uppercase">Balcão Ativo</p><p className="text-[9px] text-gray-400">Aceitar pedidos para retirada</p></div>
+                  <div><p className="font-black text-[11px] uppercase">Retirada Ativa</p><p className="text-[9px] text-gray-400">Aceitar pedidos para retirada</p></div>
                   <button onClick={() => onUpdateStoreConfig({...storeConfig, counterEnabled: !storeConfig.counterEnabled})} className={`w-14 h-7 rounded-full relative transition-all ${storeConfig.counterEnabled ? 'bg-[#6C7A1D]' : 'bg-gray-300'}`}>
                     <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${storeConfig.counterEnabled ? 'left-8' : 'left-1'}`}></div>
                   </button>
@@ -250,6 +293,117 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
+        {/* ABA MARKETING - RESTAURADA COMPLETAMENTE */}
+        {activeTab === 'marketing' && (
+          <div className="space-y-10">
+            {/* CONFIGURAÇÃO DE FIDELIDADE */}
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-t-8 border-[#6C7A1D]">
+              <div className="flex justify-between items-center mb-10">
+                <h3 className="text-2xl font-black italic uppercase">Programa de Fidelidade</h3>
+                <button onClick={() => handleUpdateLoyalty({ isActive: !loyalty.isActive })} className={`w-16 h-8 rounded-full relative transition-all ${loyalty.isActive ? 'bg-[#6C7A1D]' : 'bg-gray-300'}`}>
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${loyalty.isActive ? 'left-9' : 'left-1'}`}></div>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 opacity-90">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Meta de Gasto (R$)</p>
+                  <input type="number" value={loyalty.spendingGoal} onChange={e => handleUpdateLoyalty({ spendingGoal: Number(e.target.value) })} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:border-[#6C7A1D]" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Abrangência</p>
+                  <select value={loyalty.scopeType} onChange={e => handleUpdateLoyalty({ scopeType: e.target.value as any, scopeValue: '' })} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#6C7A1D]">
+                    <option value="all">Toda a Loja</option>
+                    <option value="category">Por Categoria</option>
+                    <option value="product">Por Produto</option>
+                  </select>
+                </div>
+                {loyalty.scopeType !== 'all' && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Valor do Escopo</p>
+                    {loyalty.scopeType === 'category' ? (
+                      <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#6C7A1D]">
+                        <option value="">Selecione...</option>
+                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                    ) : (
+                      <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#6C7A1D]">
+                        <option value="">Selecione...</option>
+                        {menuItems.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                      </select>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* GESTÃO DE CUPONS */}
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-t-8 border-[#FF7F11]">
+              <div className="flex justify-between items-center mb-10">
+                <h3 className="text-2xl font-black italic uppercase">Cupons de Desconto</h3>
+                <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg">+ Novo Cupom</button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {coupons.map(c => (
+                  <div key={c.id} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed flex flex-col relative overflow-hidden">
+                    <div className={`absolute top-0 right-0 px-4 py-1 text-[8px] font-black uppercase ${c.isActive ? 'bg-[#6C7A1D] text-white' : 'bg-red-500 text-white'}`}>
+                      {c.isActive ? 'Ativo' : 'Inativo'}
+                    </div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="text-xl font-black italic text-[#FF7F11]">{c.code}</h4>
+                        <p className="text-[10px] font-black text-gray-400 uppercase">{c.percentage}% DE DESCONTO</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setEditingCoupon(c); setIsCouponModalOpen(true); }} className="p-2 bg-white rounded-xl shadow-sm text-blue-500"><EditIcon size={16}/></button>
+                        <button onClick={() => handleDeleteCoupon(c.id)} className="p-2 bg-white rounded-xl shadow-sm text-red-500"><TrashIcon size={16}/></button>
+                      </div>
+                    </div>
+                    <div className="mt-auto pt-4 border-t border-dashed">
+                      <p className="text-[9px] font-black uppercase text-gray-500">
+                        {c.scopeType === 'all' ? '✨ Toda a Loja' : c.scopeType === 'category' ? `📁 Categoria: ${c.scopeValue}` : `🥘 Produto: ${menuItems.find(i => i.id === c.scopeValue)?.name || 'Removido'}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CLIENTES FIDELIZADOS */}
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-t-8 border-[#1A1A1A]">
+              <h3 className="text-2xl font-black italic uppercase mb-10">Ranking de Clientes (Gasto Acumulado)</h3>
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left">
+                  <thead className="border-b-2">
+                    <tr className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                      <th className="pb-4">Cliente</th>
+                      <th className="pb-4">WhatsApp</th>
+                      <th className="pb-4">Acumulado</th>
+                      <th className="pb-4">Progressão</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {loyaltyUsers.map(user => (
+                      <tr key={user.phone} className="text-[11px] font-bold">
+                        <td className="py-5 uppercase">{user.name}</td>
+                        <td className="py-5">{user.phone}</td>
+                        <td className="py-5 text-[#FF7F11] font-black">R$ {user.accumulated.toFixed(2)}</td>
+                        <td className="py-5">
+                          <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#6C7A1D]" style={{ width: `${Math.min(100, (user.accumulated / loyalty.spendingGoal) * 100)}%` }} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {loyaltyUsers.length === 0 && <p className="text-center py-10 text-gray-400 uppercase text-[10px] font-black">Nenhum cliente no programa ainda.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ABA PEDIDOS */}
         {activeTab === 'delivery' && (
           <div className="space-y-12 px-2 md:px-0">
@@ -281,7 +435,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
       </div>
 
-      {/* MODAL CATEGORIAS - RESTAURADO */}
+      {/* MODAL CATEGORIAS */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 relative">
@@ -303,7 +457,65 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* MODAL PEDIDO MANUAL - RESTAURADO */}
+      {/* MODAL CUPOM - NOVO */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative overflow-y-auto max-h-[90vh] no-scrollbar">
+            <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
+            <h3 className="text-2xl font-black italic mb-8 uppercase text-center">Configurar Cupom</h3>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Código do Cupom</p>
+                <input value={editingCoupon.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} placeholder="EX: VERAO20" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Desconto (%)</p>
+                  <input type="number" value={editingCoupon.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Status</p>
+                  <button onClick={() => setEditingCoupon({...editingCoupon, isActive: !editingCoupon.isActive})} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase border-2 transition-all ${editingCoupon.isActive ? 'bg-[#6C7A1D] text-white border-[#6C7A1D]' : 'bg-red-100 text-red-500 border-red-200'}`}>
+                    {editingCoupon.isActive ? 'Ativado' : 'Desativado'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Onde aplicar?</p>
+                <select value={editingCoupon.scopeType} onChange={e => setEditingCoupon({...editingCoupon, scopeType: e.target.value as any, scopeValue: ''})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#FF7F11]">
+                  <option value="all">Toda a Loja</option>
+                  <option value="category">Uma Categoria</option>
+                  <option value="product">Um Produto Específico</option>
+                </select>
+              </div>
+
+              {editingCoupon.scopeType !== 'all' && (
+                <div className="space-y-2 animate-in fade-in zoom-in duration-300">
+                  <p className="text-[10px] font-black uppercase text-gray-400 ml-2">Selecione o Item</p>
+                  {editingCoupon.scopeType === 'category' ? (
+                    <select value={editingCoupon.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#FF7F11]">
+                      <option value="">Selecione...</option>
+                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  ) : (
+                    <select value={editingCoupon.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none focus:border-[#FF7F11]">
+                      <option value="">Selecione...</option>
+                      {menuItems.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              <button onClick={handleSaveCoupon} className="w-full bg-black text-[#FF7F11] py-5 rounded-2xl font-black uppercase text-xs shadow-2xl mt-4">Salvar Cupom</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PEDIDO MANUAL */}
       {isManualOrderModalOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-4xl h-[90vh] rounded-[3rem] p-8 md:p-12 relative flex flex-col">
@@ -366,7 +578,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* MODAL PRODUTO COM FIX DE PREVIEW DE IMAGEM */}
+      {/* MODAL PRODUTO */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
@@ -375,7 +587,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             
             <div className="w-full aspect-square bg-gray-100 rounded-[2rem] mb-6 overflow-hidden flex items-center justify-center border-4 border-dashed border-gray-200">
                {editingProduct?.image && editingProduct.image.length > 5 ? (
-                 <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=IMAGEM+INVALIDA'; }} />
+                 <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=SEM+IMAGEM'; }} />
                ) : (
                  <div className="text-center p-10 opacity-30">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>

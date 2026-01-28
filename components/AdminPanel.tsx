@@ -67,15 +67,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   }, [activeTab]);
 
   const fetchMarketing = async () => {
-    // Cupons
     const { data: cData } = await supabase.from('coupons').select('*');
     if (cData) setCoupons(cData.map(c => ({ id: c.id, code: c.code, percentage: c.percentage, isActive: c.is_active, scopeType: c.scope_type as any, scopeValue: c.scope_value || '' })));
-    
-    // Config Fidelidade
     const { data: lConfig } = await supabase.from('loyalty_config').select('*').maybeSingle();
-    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spending_goal: lConfig.spending_goal, scope_type: lConfig.scope_type as any, scope_value: lConfig.scope_value || '' });
-    
-    // Usuários Participantes
+    if (lConfig) setLoyalty({ isActive: lConfig.is_active, spendingGoal: Number(lConfig.spending_goal), scopeType: lConfig.scope_type as any, scopeValue: lConfig.scope_value || '' });
     const { data: lUsers } = await supabase.from('loyalty_users').select('*').order('accumulated', { ascending: false });
     if (lUsers) setLoyaltyUsers(lUsers.map(u => ({ phone: u.phone, name: u.name, accumulated: Number(u.accumulated) })));
   };
@@ -87,48 +82,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleDeleteLoyaltyUser = async (phone: string) => {
-    if (confirm('Deseja excluir este cliente do programa de fidelidade? O saldo será zerado e o cadastro removido.')) {
-      const { error } = await supabase.from('loyalty_users').delete().eq('phone', phone);
-      if (!error) fetchMarketing();
+    if (confirm('Deseja excluir este cliente do programa de fidelidade? O saldo será zerado.')) {
+      await supabase.from('loyalty_users').delete().eq('phone', phone);
+      fetchMarketing();
     }
-  };
-
-  const handlePrint = (order: Order) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    const itemsHtml = order.items.map(item => `<div style="display:flex;justify-content:space-between;font-weight:bold;margin-bottom:2px;"><span>${item.quantity}x ${item.name.toUpperCase()}</span><span>R$ ${(item.price * item.quantity).toFixed(2)}</span></div>`).join('');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <style>
-            body { font-family: 'Courier New', monospace; width: 80mm; margin: 0; padding: 5mm; color: #000; background: #fff; line-height: 1.2; font-size: 13px; }
-            .center { text-align: center; }
-            .bold { font-weight: 900; }
-            .divider { border-top: 2px dashed #000; margin: 8px 0; }
-            .total { font-size: 18px; margin-top: 5px; border-top: 2px solid #000; padding-top: 5px; }
-          </style>
-        </head>
-        <body onload="window.print();window.close();">
-          <div class="center bold">${STORE_INFO.name.toUpperCase()}</div>
-          <div class="divider"></div>
-          <div class="bold">PEDIDO: #${order.id}</div>
-          <div>TIPO: ${order.orderType === 'delivery' ? 'ENTREGA' : 'RETIRADA'}</div>
-          <div class="divider"></div>
-          <div class="bold">CLIENTE: ${order.customerName.toUpperCase()}</div>
-          ${order.address ? `<div class="bold">END: ${order.address.toUpperCase()}</div>` : ''}
-          <div class="divider"></div>
-          <div class="bold">ITENS:</div>
-          ${itemsHtml}
-          <div class="total bold" style="display:flex;justify-content:space-between;">
-            <span>TOTAL:</span>
-            <span>R$ ${order.finalTotal.toFixed(2)}</span>
-          </div>
-          <div class="divider"></div>
-          <div class="bold">PAGAMENTO: ${order.paymentMethod.toUpperCase()}</div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
 
   const deliveryOrders = tables.filter(t => t.id >= 900 && t.id <= 949 && t.status === 'occupied');
@@ -137,17 +94,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   return (
     <div className="w-full animate-in fade-in duration-500 relative pb-10">
-      {/* ALERTA VISUAL DE NOVO PEDIDO */}
+      {/* ALERTA DE NOVO PEDIDO */}
       {showNewOrderAlert && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-md animate-bounce">
-          <button 
-            onClick={onClearAlert}
-            className="w-full bg-[#FF7F11] text-white p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,127,17,0.4)] flex items-center justify-between border-4 border-white"
-          >
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-md">
+          <button onClick={onClearAlert} className="w-full bg-[#FF7F11] text-white p-6 rounded-[2.5rem] shadow-2xl flex items-center justify-between border-4 border-white animate-bounce">
             <div className="flex items-center gap-4">
-              <div className="bg-white p-3 rounded-full animate-pulse">
-                <VolumeIcon size={24} className="text-[#FF7F11]" />
-              </div>
+              <div className="bg-white p-3 rounded-full"><VolumeIcon size={24} className="text-[#FF7F11]" /></div>
               <div className="text-left">
                 <p className="font-black uppercase text-xs tracking-widest">Atenção!</p>
                 <p className="font-black text-xl italic leading-none">NOVO PEDIDO CHEGOU!</p>
@@ -162,150 +114,119 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl mb-8 flex flex-col md:flex-row justify-between items-center gap-6 border-b-8 border-[#FF7F11]">
         <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-4">
-            <button onClick={onTestSound} className="bg-[#FF7F11] p-3 rounded-2xl shadow-lg hover:scale-110 transition-all">
-              <VolumeIcon size={24} className="text-white"/>
-            </button>
+            <button onClick={onTestSound} className="bg-[#FF7F11] p-3 rounded-2xl shadow-lg hover:scale-110 transition-all"><VolumeIcon size={24} className="text-white"/></button>
             <div className="text-left">
               <h2 className="text-xl font-black italic text-[#FF7F11] uppercase leading-none tracking-tighter">Ju Admin</h2>
               <p className="text-[9px] text-white uppercase font-black tracking-[0.2em] mt-1">Gestão Marmitas</p>
             </div>
           </div>
-          <button onClick={onLogout} className="md:hidden bg-red-600 text-white font-black text-[10px] uppercase px-4 py-3 rounded-xl shadow-xl">Sair</button>
+          <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-4 py-3 rounded-xl">Sair</button>
         </div>
         
         <nav className="flex bg-gray-900 p-1.5 rounded-2xl gap-1 w-full md:w-auto overflow-x-auto no-scrollbar">
           {(['delivery', 'menu', 'marketing', 'setup'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-shrink-0 px-5 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === tab ? 'bg-[#FF7F11] text-white shadow-xl' : 'text-gray-500 hover:text-white'}`}>
-              {tab === 'delivery' ? 'Pedidos' : tab === 'menu' ? 'Meu Cardápio' : tab === 'marketing' ? 'Marketing' : 'Ajustes'}
+              {tab === 'delivery' ? 'Pedidos' : tab === 'menu' ? 'Produtos' : tab === 'marketing' ? 'Marketing' : 'Ajustes'}
             </button>
           ))}
         </nav>
-        
-        <div className="hidden md:flex gap-2">
-          <button onClick={() => window.open(window.location.origin + '?view=menu', '_blank')} className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center gap-2">
-            <span>Ver Cardápio</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-          </button>
-          <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all">Sair</button>
-        </div>
       </div>
 
       <div className="min-h-[60vh]">
-        {/* ABA MARKETING - Fidelidade, Cupons e Clientes */}
+        {/* ABA MARKETING - CORREÇÃO DE SELEÇÃO */}
         {activeTab === 'marketing' && (
           <div className="space-y-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              {/* CONFIG FIDELIDADE */}
               <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#6C7A1D]">
-                <div className="flex justify-between items-center mb-10">
-                  <h3 className="text-xl md:text-2xl font-black italic uppercase">💎 Fidelidade</h3>
-                  <button onClick={() => handleUpdateLoyalty({ isActive: !loyalty.isActive })} className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all ${loyalty.isActive ? 'bg-[#6C7A1D] text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
-                    {loyalty.isActive ? 'Ativo' : 'Inativo'}
-                  </button>
-                </div>
+                <h3 className="text-xl md:text-2xl font-black italic uppercase mb-10">💎 Fidelidade Ju</h3>
                 <div className="space-y-6">
                   <div>
-                    <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Meta de Gastos (R$)</p>
+                    <p className="text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Meta de Gastos (R$)</p>
                     <input type="number" value={loyalty.spendingGoal} onChange={e => handleUpdateLoyalty({ spendingGoal: Number(e.target.value) })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xl outline-none focus:border-[#6C7A1D]" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Aplicar em:</p>
+                    <p className="text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Aplicar em:</p>
                     <select value={loyalty.scopeType} onChange={e => handleUpdateLoyalty({ scopeType: e.target.value as any, scopeValue: '' })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-[#6C7A1D]">
                       <option value="all">Todo o Cardápio</option>
                       <option value="category">Uma Categoria</option>
                       <option value="product">Um Produto</option>
                     </select>
                   </div>
-                  {/* SELEÇÃO DINÂMICA DE ESCOPO PARA FIDELIDADE */}
                   {loyalty.scopeType === 'category' && (
-                    <div className="animate-in slide-in-from-top duration-300">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Qual Categoria?</p>
-                      <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none">
-                        <option value="">Selecione...</option>
-                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                      </select>
-                    </div>
+                    <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-[#6C7A1D]">
+                      <option value="">Selecione a Categoria...</option>
+                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
                   )}
                   {loyalty.scopeType === 'product' && (
-                    <div className="animate-in slide-in-from-top duration-300">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Qual Marmita?</p>
-                      <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none">
-                        <option value="">Selecione...</option>
-                        {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
-                    </div>
+                    <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-[#6C7A1D]">
+                      <option value="">Selecione o Produto...</option>
+                      {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
                   )}
                 </div>
               </div>
 
-              {/* CUPONS */}
               <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#FF7F11]">
                  <div className="flex justify-between items-center mb-10">
-                    <h3 className="text-xl md:text-2xl font-black italic uppercase">🎫 Cupons</h3>
+                    <h3 className="text-xl md:text-2xl font-black italic uppercase">🎫 Cupons Ju</h3>
                     <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-lg">+ Novo Cupom</button>
                  </div>
-                 <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                 <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
                     {coupons.map(c => (
-                      <div key={c.id} className="p-5 bg-gray-50 rounded-2xl border flex flex-col gap-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-black uppercase text-xs text-[#1A1A1A]">{c.code} - {c.percentage}% OFF</span>
-                          <button onClick={async () => { if(confirm('Excluir cupom?')) { await supabase.from('coupons').delete().eq('id', c.id); fetchMarketing(); } }} className="text-red-500 hover:scale-110 transition-all"><TrashIcon size={18}/></button>
+                      <div key={c.id} className="p-5 bg-gray-50 rounded-2xl border flex justify-between items-center">
+                        <div>
+                          <p className="font-black uppercase text-xs">{c.code} - {c.percentage}% OFF</p>
+                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{c.scopeType === 'all' ? 'Todos' : c.scopeValue}</p>
                         </div>
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                          Escopo: {c.scopeType === 'all' ? 'Todos' : c.scopeType === 'category' ? `Cat: ${c.scopeValue}` : `Prod: ${menuItems.find(m => m.id === c.scopeValue)?.name || c.scopeValue}`}
-                        </p>
+                        <button onClick={async () => { await supabase.from('coupons').delete().eq('id', c.id); fetchMarketing(); }} className="text-red-500 hover:scale-110 transition-all"><TrashIcon size={18}/></button>
                       </div>
                     ))}
-                    {coupons.length === 0 && <p className="text-center text-[10px] text-gray-400 uppercase italic py-10">Nenhum cupom ativo</p>}
                  </div>
               </div>
             </div>
 
-            {/* LISTA DE CLIENTES DA FIDELIDADE */}
             <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
               <h3 className="text-xl md:text-2xl font-black italic uppercase mb-8">👥 Participantes Fidelidade</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {loyaltyUsers.map(u => (
                    <div key={u.phone} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-transparent hover:border-[#FF7F11] transition-all flex justify-between items-center group">
                       <div>
-                        <h4 className="font-black text-sm uppercase text-[#1A1A1A]">{u.name || 'Sem Nome'}</h4>
+                        <h4 className="font-black text-sm uppercase">{u.name || 'Cliente'}</h4>
                         <p className="text-[10px] font-bold text-gray-400">{u.phone}</p>
-                        <div className="mt-2 inline-block bg-[#6C7A1D]/10 text-[#6C7A1D] px-3 py-1 rounded-full text-[9px] font-black uppercase">
-                          R$ {u.accumulated.toFixed(2)} acumulados
-                        </div>
+                        <div className="mt-2 inline-block bg-[#6C7A1D]/10 text-[#6C7A1D] px-3 py-1 rounded-full text-[9px] font-black uppercase">R$ {u.accumulated.toFixed(2)} acumulados</div>
                       </div>
-                      <button onClick={() => handleDeleteLoyaltyUser(u.phone)} className="p-3 bg-white text-red-500 rounded-2xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TrashIcon size={18} />
-                      </button>
+                      <button onClick={() => handleDeleteLoyaltyUser(u.phone)} className="p-3 bg-white text-red-500 rounded-2xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"><TrashIcon size={18} /></button>
                    </div>
                  ))}
-                 {loyaltyUsers.length === 0 && (
-                   <div className="col-span-full py-20 text-center opacity-30 grayscale">
-                      <p className="text-[11px] font-black uppercase tracking-[0.3em]">Nenhum cliente participante ainda</p>
-                   </div>
-                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* ABA AJUSTES */}
-        {activeTab === 'setup' && (
-          <div className="max-w-xl mx-auto bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
-            <h3 className="text-xl md:text-2xl font-black italic uppercase mb-10 text-center">Status da Loja</h3>
-            <div className="space-y-6">
-              {[
-                { id: 'deliveryEnabled', label: 'Entrega Disponível 🚚' },
-                { id: 'counterEnabled', label: 'Retirada Disponível 🏪' }
-              ].map(item => (
-                <div key={item.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-2xl border">
-                  <span className="font-black uppercase text-[10px] tracking-widest">{item.label}</span>
-                  <button 
-                    onClick={() => onUpdateStoreConfig({ ...storeConfig, [item.id]: !storeConfig[item.id as keyof StoreConfig] })}
-                    className={`w-14 h-7 rounded-full relative transition-all ${storeConfig[item.id as keyof StoreConfig] ? 'bg-green-600' : 'bg-gray-300'}`}
-                  >
-                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow ${storeConfig[item.id as keyof StoreConfig] ? 'left-8' : 'left-1'}`}></div>
-                  </button>
+        {/* ABA PRODUTOS - MEU CARDÁPIO */}
+        {activeTab === 'menu' && (
+          <div className="bg-white p-4 md:p-10 rounded-[2rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+              <h3 className="text-2xl font-black italic uppercase">Minhas Marmitas</h3>
+              <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-4 w-full md:w-auto">
+                <button onClick={() => setIsCategoryModalOpen(true)} className="flex-1 md:flex-none bg-gray-100 text-gray-600 px-4 py-3 rounded-xl font-black text-[9px] uppercase">Categorias</button>
+                <button onClick={() => { setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true, description: '', image: '' }); setIsProductModalOpen(true); }} className="flex-1 md:flex-none bg-[#1A1A1A] text-[#FF7F11] px-4 py-3 rounded-xl font-black text-[9px] uppercase shadow-xl">+ Nova Marmita</button>
+                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="w-full md:w-48 bg-gray-50 border-2 rounded-xl px-4 py-3 text-[10px] font-black outline-none focus:border-[#FF7F11]" />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-8">
+              {menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
+                <div key={item.id} className="bg-gray-50 p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border-2 relative shadow-sm hover:shadow-lg transition-all">
+                  <div className="w-full aspect-square bg-gray-200 rounded-[1.5rem] md:rounded-[2rem] mb-3 overflow-hidden">
+                    <img src={item.image} onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=' + item.name.charAt(0); }} className="w-full h-full object-cover" />
+                  </div>
+                  <h4 className="font-black text-[10px] md:text-[11px] uppercase leading-tight min-h-[2.5em] line-clamp-2">{item.name}</h4>
+                  <div className="flex gap-2 mt-4">
+                    <button onClick={() => { setEditingProduct(item); setIsProductModalOpen(true); }} className="flex-1 bg-white p-2 rounded-xl text-blue-500 flex justify-center shadow-sm hover:bg-blue-50 transition-all"><EditIcon size={16}/></button>
+                    <button onClick={() => onDeleteProduct(item.id)} className="flex-1 bg-white p-2 rounded-xl text-red-500 flex justify-center shadow-sm hover:bg-red-50 transition-all"><TrashIcon size={16}/></button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -316,18 +237,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         {activeTab === 'delivery' && (
           <div className="space-y-12 px-2 md:px-0">
             <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm border gap-4">
-               <h3 className="text-xl font-black uppercase italic">Fluxo de Pedidos</h3>
-               <button onClick={() => { 
-                 setManualOrderData({ customerName: '', customerPhone: '', address: '', items: [], type: 'delivery', paymentMethod: 'Pix' });
-                 setIsManualOrderModalOpen(true); 
-               }} className="w-full md:w-auto bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg">+ Lançar Pedido</button>
+               <h3 className="text-xl font-black uppercase italic">Fluxo de Marmitas</h3>
+               <button onClick={() => setIsManualOrderModalOpen(true)} className="w-full md:w-auto bg-[#1A1A1A] text-[#FF7F11] px-8 py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg">+ Lançar Pedido</button>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
               <div className="space-y-6">
-                <h4 className="font-black uppercase text-[#FF7F11] ml-2">🚚 Entrega ({deliveryOrders.length})</h4>
+                <h4 className="font-black uppercase text-[#FF7F11] ml-2">🚚 Entregas ({deliveryOrders.length})</h4>
                 {deliveryOrders.map(t => (
-                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className={`w-full bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border-4 flex justify-between items-center shadow-md transition-all hover:scale-[1.02] ${t.currentOrder?.status === 'pending' ? 'border-orange-500' : 'border-[#FF7F11]'}`}>
-                    <div className="text-left"><h5 className="font-black uppercase text-sm">{t.currentOrder?.customerName}</h5><p className="text-[9px] text-gray-400">ID: #{t.currentOrder?.id}</p></div>
+                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="w-full bg-white p-5 rounded-[2rem] border-4 border-[#FF7F11] flex justify-between items-center shadow-md">
+                    <div className="text-left"><h5 className="font-black uppercase text-sm">{t.currentOrder?.customerName}</h5><p className="text-[9px] text-gray-400">#{t.currentOrder?.id}</p></div>
                     <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[8px] font-black px-4 py-2 rounded-full uppercase`}>{STATUS_CFG[t.currentOrder?.status || 'pending'].label}</div>
                   </button>
                 ))}
@@ -335,8 +253,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="space-y-6">
                 <h4 className="font-black uppercase text-[#6C7A1D] ml-2">🏪 Balcão ({takeawayOrders.length})</h4>
                 {takeawayOrders.map(t => (
-                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className={`w-full bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border-4 flex justify-between items-center shadow-md transition-all hover:scale-[1.02] ${t.currentOrder?.status === 'pending' ? 'border-orange-500' : 'border-[#6C7A1D]'}`}>
-                    <div className="text-left"><h5 className="font-black uppercase text-sm">{t.currentOrder?.customerName}</h5><p className="text-[9px] text-gray-400">ID: #{t.currentOrder?.id}</p></div>
+                  <button key={t.id} onClick={() => setSelectedOrderId(t.id)} className="w-full bg-white p-5 rounded-[2rem] border-4 border-[#6C7A1D] flex justify-between items-center shadow-md">
+                    <div className="text-left"><h5 className="font-black uppercase text-sm">{t.currentOrder?.customerName}</h5><p className="text-[9px] text-gray-400">#{t.currentOrder?.id}</p></div>
                     <div className={`${STATUS_CFG[t.currentOrder?.status || 'pending'].badge} text-[8px] font-black px-4 py-2 rounded-full uppercase`}>{STATUS_CFG[t.currentOrder?.status || 'pending'].label}</div>
                   </button>
                 ))}
@@ -344,276 +262,77 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
         )}
-
-        {/* ABA MARMITAS (MEU CARDÁPIO) */}
-        {activeTab === 'menu' && (
-          <div className="bg-white p-4 md:p-10 rounded-[2rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-              <h3 className="text-2xl font-black italic uppercase">Meu Cardápio</h3>
-              <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-4 w-full md:w-auto">
-                <button onClick={() => setIsCategoryModalOpen(true)} className="flex-1 md:flex-none bg-gray-100 text-gray-600 px-4 py-3 rounded-xl font-black text-[9px] uppercase">Categorias</button>
-                <button onClick={() => { 
-                  setEditingProduct({ name: '', price: 0, category: categories[0]?.name || '', isAvailable: true, description: '', image: '' }); 
-                  setIsProductModalOpen(true); 
-                }} className="flex-1 md:flex-none bg-[#1A1A1A] text-[#FF7F11] px-4 py-3 rounded-xl font-black text-[9px] uppercase shadow-xl">+ Marmita</button>
-                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="BUSCAR..." className="w-full md:w-48 bg-gray-50 border-2 rounded-xl px-4 py-3 text-[10px] font-black outline-none focus:border-[#FF7F11]" />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-8">
-              {menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
-                <div key={item.id} className={`bg-gray-50 p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border-2 relative shadow-sm transition-all hover:shadow-lg ${!item.isAvailable ? 'opacity-40 grayscale' : 'border-transparent'}`}>
-                  <img src={item.image} className="w-full aspect-square object-cover rounded-[1.5rem] md:rounded-[2rem] mb-3 md:mb-4" />
-                  <h4 className="font-black text-[10px] md:text-[11px] uppercase leading-tight min-h-[2.5em] line-clamp-2">
-                    {item.name}
-                  </h4>
-                  <div className="flex gap-2 mt-4">
-                    <button onClick={() => { setEditingProduct(item); setIsProductModalOpen(true); }} className="flex-1 bg-white p-2 md:p-3 rounded-xl shadow-sm text-blue-500 hover:bg-blue-100 flex justify-center"><EditIcon size={16}/></button>
-                    <button onClick={() => { if(confirm('Apagar esta marmita permanentemente?')) onDeleteProduct(item.id); }} className="flex-1 bg-white p-2 md:p-3 rounded-xl shadow-sm text-red-500 hover:bg-red-100 flex justify-center"><TrashIcon size={16}/></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* MODAL CUPOM - SELEÇÃO DINÂMICA DE ESCOPO */}
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh]">
-             <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-             <h3 className="text-xl md:text-2xl font-black italic mb-10 uppercase text-center">Novo Cupom</h3>
-             <form onSubmit={async (e) => {
-               e.preventDefault();
-               if(!editingCoupon.code || !editingCoupon.percentage) return;
-               await supabase.from('coupons').insert([{ 
-                  code: editingCoupon.code.toUpperCase().trim(), 
-                  percentage: editingCoupon.percentage, 
-                  is_active: true, 
-                  scope_type: editingCoupon.scopeType,
-                  scope_value: editingCoupon.scopeValue
-               }]);
-               setIsCouponModalOpen(false); fetchMarketing();
-             }} className="space-y-6">
-                <input placeholder="CÓDIGO (EX: MARMITA10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-                <div className="space-y-2">
-                   <p className="text-[10px] font-black text-gray-400 uppercase ml-2">% Desconto</p>
-                   <input type="number" placeholder="EX: 10" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black outline-none" required />
-                </div>
-                <div className="space-y-2">
-                   <p className="text-[10px] font-black text-gray-400 uppercase ml-2">Onde Aplicar?</p>
-                   <select value={editingCoupon?.scopeType} onChange={e => setEditingCoupon({...editingCoupon, scopeType: e.target.value as any, scopeValue: ''})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]">
-                      <option value="all">Todo o Cardápio</option>
-                      <option value="category">Uma Categoria</option>
-                      <option value="product">Um Produto</option>
-                   </select>
-                </div>
-                {editingCoupon?.scopeType === 'category' && (
-                  <div className="animate-in slide-in-from-top duration-300">
-                    <p className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-2">Selecione a Categoria</p>
-                    <select value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none" required>
-                      <option value="">Selecione...</option>
-                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                {editingCoupon?.scopeType === 'product' && (
-                  <div className="animate-in slide-in-from-top duration-300">
-                    <p className="text-[10px] font-black text-gray-400 uppercase ml-2 mb-2">Selecione a Marmita</p>
-                    <select value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none" required>
-                      <option value="">Selecione...</option>
-                      {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl hover:scale-[1.02] transition-all">Ativar Cupom</button>
-             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CATEGORIA */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 relative shadow-2xl">
-             <button onClick={() => setIsCategoryModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={18}/></button>
-             <h3 className="text-xl md:text-2xl font-black italic mb-8 uppercase text-center">Categorias</h3>
-             <div className="space-y-3 mb-8 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
-                {categories.map(cat => (
-                  <div key={cat.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border">
-                    <span className="font-black uppercase text-[10px]">{cat.name}</span>
-                    <button onClick={async () => { if(confirm('Excluir categoria?')) { await supabase.from('categories').delete().eq('id', cat.id); onRefreshData(); } }} className="text-red-500"><TrashIcon size={16}/></button>
-                  </div>
-                ))}
-             </div>
-             <form onSubmit={async (e) => {
-               e.preventDefault();
-               if(!newCatName.trim()) return;
-               await supabase.from('categories').insert([{ name: newCatName.trim() }]);
-               setNewCatName(''); onRefreshData();
-             }} className="flex gap-2">
-                <input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="NOVA CATEGORIA" className="flex-1 bg-gray-50 border-2 rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none focus:border-[#FF7F11]" />
-                <button type="submit" className="bg-[#1A1A1A] text-[#FF7F11] px-5 rounded-xl font-black text-[10px] uppercase">ADD</button>
-             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PRODUTO */}
+      {/* MODAL PRODUTO COM PREVIEW DE IMAGEM */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-            <h3 className="text-xl md:text-2xl font-black italic mb-8 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Nova'} Marmita</h3>
+            <h3 className="text-xl md:text-2xl font-black italic mb-8 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Nova'} Marmita Ju</h3>
+            
+            {/* AREA DE PREVIEW DA IMAGEM CORRIGIDA */}
+            <div className="w-full aspect-square bg-gray-100 rounded-[2rem] mb-6 overflow-hidden flex items-center justify-center border-4 border-dashed border-gray-200">
+               {editingProduct?.image ? (
+                 <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=URL+INVALIDA'; }} />
+               ) : (
+                 <div className="text-center p-10 opacity-20 grayscale">
+                    <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <p className="text-[10px] font-black uppercase tracking-widest leading-none">Aguardando URL da Imagem...</p>
+                 </div>
+               )}
+            </div>
+
             <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-4">
-              <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black uppercase outline-none" required />
-              <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="O QUE VEM NA MARMITA?" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black h-24 resize-none" />
+              <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DA MARMITA" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
+              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM (COLE O LINK AQUI)" className="w-full bg-gray-100 border-2 border-[#FF7F11]/20 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" />
               <div className="grid grid-cols-2 gap-4">
-                <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black" required />
-                <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-[10px] font-black uppercase">
+                <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black outline-none" required />
+                <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-[10px] font-black uppercase outline-none">
                   {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
-              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA FOTO" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black" />
-              <div className="flex items-center gap-4 bg-gray-100 p-4 rounded-xl">
-                <input type="checkbox" checked={editingProduct?.isAvailable} onChange={e => setEditingProduct({...editingProduct, isAvailable: e.target.checked})} className="w-5 h-5 rounded-lg accent-[#FF7F11]" />
-                <label className="text-[10px] font-black uppercase">Disponível</label>
-              </div>
-              <button type="submit" className="w-full bg-black text-[#FF7F11] py-5 rounded-2xl font-black uppercase text-xs shadow-2xl">Salvar</button>
+              <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCRIÇÃO / INGREDIENTES" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black h-20 resize-none outline-none focus:border-[#FF7F11]" />
+              <button type="submit" className="w-full bg-black text-[#FF7F11] py-5 rounded-2xl font-black uppercase text-xs shadow-2xl hover:scale-[1.02] transition-all">Salvar Marmita</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL PEDIDO MANUAL */}
-      {isManualOrderModalOpen && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-12 relative shadow-2xl flex flex-col md:flex-row gap-6 md:gap-10 max-h-[95vh] overflow-hidden">
-             <button onClick={() => setIsManualOrderModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full z-20"><CloseIcon size={20}/></button>
-             <div className="flex-1 flex flex-col gap-4 md:gap-6 overflow-y-auto no-scrollbar pr-2 pt-8 md:pt-0">
-                <h3 className="text-xl md:text-2xl font-black italic uppercase">Novo Pedido</h3>
-                <input placeholder="NOME DO CLIENTE" value={manualOrderData.customerName} onChange={e => setManualOrderData({...manualOrderData, customerName: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-[11px] font-black uppercase" />
-                <div className="flex gap-2">
-                  <button onClick={() => setManualOrderData({...manualOrderData, type: 'delivery'})} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${manualOrderData.type === 'delivery' ? 'bg-[#FF7F11] text-white border-[#FF7F11]' : 'bg-white'}`}>Entrega</button>
-                  <button onClick={() => setManualOrderData({...manualOrderData, type: 'takeaway'})} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${manualOrderData.type === 'takeaway' ? 'bg-[#6C7A1D] text-white border-[#6C7A1D]' : 'bg-white'}`}>Balcão</button>
-                </div>
-                
-                {manualOrderData.type === 'delivery' && (
-                  <textarea placeholder="ENDEREÇO COMPLETO" value={manualOrderData.address} onChange={e => setManualOrderData({...manualOrderData, address: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-[11px] font-black uppercase h-20 resize-none" required />
+      {/* MODAL CUPOM - SELEÇÃO DINÂMICA DE ESCOPO */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh]">
+             <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
+             <h3 className="text-xl md:text-2xl font-black italic mb-10 uppercase text-center">Novo Cupom Ju</h3>
+             <form onSubmit={async (e) => {
+               e.preventDefault();
+               if(!editingCoupon.code || !editingCoupon.percentage) return;
+               await supabase.from('coupons').insert([{ code: editingCoupon.code.toUpperCase().trim(), percentage: editingCoupon.percentage, is_active: true, scope_type: editingCoupon.scopeType, scope_value: editingCoupon.scopeValue }]);
+               setIsCouponModalOpen(false); fetchMarketing();
+             }} className="space-y-6">
+                <input placeholder="CÓDIGO (EX: JU10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
+                <input type="number" placeholder="% DESCONTO" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black outline-none" required />
+                <select value={editingCoupon?.scopeType} onChange={e => setEditingCoupon({...editingCoupon, scopeType: e.target.value as any, scopeValue: ''})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-4 text-xs font-black uppercase outline-none">
+                  <option value="all">Todo o Cardápio</option>
+                  <option value="category">Uma Categoria</option>
+                  <option value="product">Um Produto</option>
+                </select>
+                {editingCoupon?.scopeType === 'category' && (
+                  <select value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none" required>
+                    <option value="">Selecione a Categoria...</option>
+                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
                 )}
-
-                <div className="p-4 bg-gray-50 rounded-xl border space-y-2">
-                  <h4 className="text-[9px] font-black uppercase text-gray-400">Itens Selecionados</h4>
-                  {manualOrderData.items.map(item => (
-                    <div key={item.id} className="flex justify-between items-center text-[10px] font-black uppercase">
-                      <span>{item.quantity}x {item.name}</span>
-                      <button onClick={() => setManualOrderData(p => ({ ...p, items: p.items.filter(i => i.id !== item.id) }))} className="text-red-500"><TrashIcon size={12}/></button>
-                    </div>
-                  ))}
-                  {manualOrderData.items.length === 0 && <p className="text-[9px] text-gray-300 italic">Nenhum item...</p>}
-                </div>
-
-                <button onClick={() => {
-                   if(!manualOrderData.customerName.trim()) return alert('Nome obrigatório');
-                   if(manualOrderData.type === 'delivery' && !manualOrderData.address.trim()) return alert('Endereço obrigatório');
-                   if(manualOrderData.items.length === 0) return alert('Adicione itens');
-
-                   const total = manualOrderData.items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-                   const range = manualOrderData.type === 'delivery' ? [900, 949] : [950, 999];
-                   const tid = tables.find(t => t.id >= range[0] && t.id <= range[1] && t.status === 'free')?.id || range[0];
-                   
-                   onUpdateTable(tid, 'occupied', { 
-                     id: 'M'+Date.now().toString().slice(-4), 
-                     customerName: manualOrderData.customerName, 
-                     items: manualOrderData.items, 
-                     total, 
-                     finalTotal: total, 
-                     paymentMethod: manualOrderData.paymentMethod, 
-                     timestamp: new Date().toISOString(), 
-                     tableId: tid, 
-                     status: 'pending', 
-                     orderType: manualOrderData.type === 'delivery' ? 'delivery' : 'counter',
-                     address: manualOrderData.type === 'delivery' ? manualOrderData.address : undefined
-                   });
-                   setIsManualOrderModalOpen(false);
-                }} className="w-full bg-black text-[#FF7F11] py-5 rounded-2xl font-black uppercase text-[10px] shadow-xl">Concluir ✅</button>
-             </div>
-             
-             <div className="flex-1 bg-gray-50 p-4 md:p-8 rounded-[2rem] overflow-y-auto no-scrollbar shadow-inner border">
-                <h4 className="text-[10px] font-black uppercase text-gray-400 mb-4 tracking-widest text-center">Selecionar Marmitas</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {menuItems.filter(i => i.isAvailable).map(prod => (
-                    <button key={prod.id} onClick={() => setManualOrderData(p => {
-                      const ex = p.items.find(i => i.id === prod.id);
-                      if (ex) return { ...p, items: p.items.map(i => i.id === prod.id ? { ...i, quantity: i.quantity + 1 } : i) };
-                      return { ...p, items: [...p.items, { ...prod, quantity: 1 }] };
-                    })} className="bg-white p-3 rounded-xl border-2 border-transparent hover:border-[#FF7F11] text-left shadow-sm">
-                       <p className="text-[9px] font-black line-clamp-2 uppercase leading-tight h-[2.5em]">{prod.name}</p>
-                       <p className="text-[10px] font-black text-[#FF7F11] mt-1">R$ {prod.price.toFixed(2)}</p>
-                    </button>
-                  ))}
-                </div>
-             </div>
+                {editingCoupon?.scopeType === 'product' && (
+                  <select value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none" required>
+                    <option value="">Selecione o Produto...</option>
+                    {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                )}
+                <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Ativar Cupom</button>
+             </form>
           </div>
-        </div>
-      )}
-
-      {/* MODAL DETALHES PEDIDO */}
-      {selectedOrderId && selectedOrder && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setSelectedOrderId(null)} />
-           <div className="relative bg-white w-full max-w-4xl h-[90vh] md:h-[80vh] rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 overflow-y-auto flex flex-col border-t-8 border-[#FF7F11] no-scrollbar">
-              <div className="flex justify-between items-start mb-6">
-                 <div>
-                    <h3 className="text-2xl md:text-3xl font-black uppercase italic text-[#1A1A1A]">{selectedOrder.currentOrder?.customerName}</h3>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                      #{selectedOrder.currentOrder?.id} • {selectedOrder.currentOrder?.orderType === 'delivery' ? 'Entrega 🚚' : 'Balcão 🏪'}
-                    </p>
-                 </div>
-                 <div className="flex gap-2">
-                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-gray-900 text-white p-3 rounded-full shadow-lg"><PrinterIcon size={20}/></button>
-                    <button onClick={() => setSelectedOrderId(null)} className="p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-                 </div>
-              </div>
-              <div className="flex-1 space-y-6">
-                 <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100">
-                    <p className="text-[8px] font-black text-gray-400 mb-4 uppercase tracking-widest">Status</p>
-                    <div className="grid grid-cols-2 gap-2">
-                       {(['pending', 'preparing', 'ready', 'delivered'] as OrderStatus[]).map(s => (
-                          <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-3 rounded-xl text-[8px] font-black uppercase border-2 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-[#FF7F11] text-white border-[#1A1A1A]' : 'bg-white text-gray-400'}`}>
-                             {STATUS_CFG[s].label}
-                          </button>
-                       ))}
-                    </div>
-                 </div>
-                 <div className="space-y-3">
-                    {selectedOrder.currentOrder?.items.map((item, idx) => (
-                       <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                          <img src={item.image} className="w-12 h-12 rounded-xl object-cover" />
-                          <div className="flex-1">
-                             <p className="font-black text-[10px] uppercase text-[#1A1A1A]">{item.name}</p>
-                             <p className="text-[9px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p>
-                          </div>
-                          <span className="font-black italic text-[#FF7F11] text-xs">R$ {(item.price * item.quantity).toFixed(2)}</span>
-                       </div>
-                    ))}
-                 </div>
-                 {selectedOrder.currentOrder?.address && (
-                   <div className="bg-[#1A1A1A] p-6 rounded-2xl text-white border-l-8 border-[#FF7F11]">
-                      <p className="text-[8px] font-black text-[#FF7F11] mb-1 uppercase tracking-widest">Entrega em:</p>
-                      <p className="text-[11px] font-bold uppercase leading-tight">{selectedOrder.currentOrder.address}</p>
-                   </div>
-                 )}
-              </div>
-              <div className="pt-6 mt-6 border-t flex flex-col md:flex-row justify-between items-center gap-4">
-                 <div className="text-center md:text-left">
-                    <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest">Total</p>
-                    <p className="text-3xl font-black italic text-[#1A1A1A]">R$ {selectedOrder.currentOrder?.finalTotal.toFixed(2)}</p>
-                 </div>
-                 <button onClick={() => { if(confirm('Finalizar pedido?')) { onUpdateTable(selectedOrder.id, 'free'); setSelectedOrderId(null); } }} className="w-full md:w-auto bg-[#6C7A1D] text-white px-10 py-5 rounded-2xl font-black uppercase text-[10px] shadow-xl">Concluir ✅</button>
-              </div>
-           </div>
         </div>
       )}
     </div>

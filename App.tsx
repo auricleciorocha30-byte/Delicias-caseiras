@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import HeaderComp from './components/Header';
 import MenuItem from './components/MenuItem';
 import Cart from './components/Cart';
@@ -28,7 +28,7 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
-  const [isLoadingLogin, setIsLoadingLogin] = useState(false);
+  const [isLoadingLogin, setIsLoadingLogin] = useState(true);
   const [isCustomerView, setIsCustomerView] = useState(false);
   
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -68,10 +68,6 @@ const App: React.FC = () => {
       console.warn("Audio Context blocked.");
     }
   }, []);
-
-  const isStoreClosed = useMemo(() => {
-    return !storeConfig.deliveryEnabled && !storeConfig.counterEnabled;
-  }, [storeConfig]);
 
   const fetchData = useCallback(async () => {
     setDbStatus('loading');
@@ -114,6 +110,25 @@ const App: React.FC = () => {
     setDbStatus('ok');
   }, []);
 
+  // PERSISTÊNCIA DE LOGIN: Verifica sessão ativa ao carregar
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      setIsLoadingLogin(false);
+      if (session) fetchData();
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+      if (session) fetchData();
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchData]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'menu') setIsCustomerView(true);
@@ -132,16 +147,17 @@ const App: React.FC = () => {
   };
 
   if (isCustomerView) {
+    const isStoreClosed = !storeConfig.deliveryEnabled && !storeConfig.counterEnabled;
     return (
       <div className="min-h-screen bg-brand-cream flex flex-col font-sans">
         <HeaderComp />
         <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 relative z-20 flex-1 -mt-10 pb-40">
           {isStoreClosed ? (
             <div className="flex flex-col items-center justify-center pt-24 pb-32 text-center">
-               <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-brand-orange max-w-md w-full relative overflow-hidden">
+               <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-brand-orange max-w-md w-full">
                   <h2 className="text-4xl font-black italic uppercase tracking-tighter text-brand-dark mb-2 leading-none">Loja Fechada</h2>
                   <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest mb-8">Nossas marmitas estão descansando!</p>
-                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-brand-green text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-all">
+                  <a href={`https://wa.me/${STORE_INFO.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-brand-green text-white px-10 py-5 rounded-[2.5rem] font-black uppercase text-[10px] shadow-lg">
                     <span>Chame no WhatsApp</span>
                   </a>
                </div>
@@ -168,7 +184,7 @@ const App: React.FC = () => {
         <Footer />
         {!isStoreClosed && cartItems.length > 0 && (
           <div className="fixed bottom-10 left-0 right-0 flex justify-center px-8 z-40">
-            <button onClick={() => setIsCartOpen(true)} className="w-full max-w-lg bg-brand-dark text-white rounded-[3rem] p-6 flex items-center justify-between shadow-2xl ring-8 ring-brand-orange/20 active:scale-95 transition-all">
+            <button onClick={() => setIsCartOpen(true)} className="w-full max-w-lg bg-brand-dark text-white rounded-[3rem] p-6 flex items-center justify-between shadow-2xl ring-8 ring-brand-orange/20">
               <div className="flex items-center gap-5">
                 <div className="bg-brand-orange text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black">{cartItems.reduce((a,b)=>a+b.quantity,0)}</div>
                 <span className="font-black text-[12px] uppercase">Minha Sacola</span>
@@ -192,24 +208,24 @@ const App: React.FC = () => {
     );
   }
 
+  if (isLoadingLogin) {
+    return <div className="min-h-screen bg-brand-cream flex items-center justify-center font-black uppercase text-brand-orange animate-pulse">Carregando...</div>;
+  }
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-brand-cream flex items-center justify-center p-6 font-sans">
         <div className="bg-white p-10 md:p-14 rounded-[4rem] w-full max-w-md text-center shadow-2xl border-t-8 border-brand-orange">
-          <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter">Ju Admin</h2>
+          <h2 className="text-3xl font-black mb-2 italic uppercase tracking-tighter text-brand-dark">Ju Admin</h2>
           <form onSubmit={async (e) => {
             e.preventDefault();
-            setIsLoadingLogin(true);
             const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPass });
             if (!error && data.session) { setIsLoggedIn(true); fetchData(); }
             else alert('Credenciais incorretas.');
-            setIsLoadingLogin(false);
           }} className="space-y-4 mt-8">
             <input type="email" placeholder="E-MAIL" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black outline-none focus:border-brand-orange text-center" required />
             <input type="password" placeholder="SENHA" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full bg-gray-50 border-2 rounded-3xl px-8 py-5 text-xs font-black outline-none focus:border-brand-orange text-center" required />
-            <button type="submit" disabled={isLoadingLogin} className="w-full bg-brand-dark text-brand-orange font-black py-6 rounded-3xl uppercase text-[11px] shadow-xl hover:scale-105 transition-all">
-              {isLoadingLogin ? 'Entrando...' : 'Entrar'}
-            </button>
+            <button type="submit" className="w-full bg-brand-dark text-brand-orange font-black py-6 rounded-3xl uppercase text-[11px] shadow-xl hover:scale-105 transition-all">Entrar</button>
           </form>
         </div>
       </div>

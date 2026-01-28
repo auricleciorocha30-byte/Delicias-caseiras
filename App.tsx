@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import HeaderComp from './components/Header';
 import MenuItem from './components/MenuItem';
 import Cart from './components/Cart';
@@ -42,30 +42,38 @@ const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<'loading' | 'ok'>('loading');
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   
+  const audioContextRef = useRef<AudioContext | null>(null);
+
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({
     tablesEnabled: false, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: false
   });
 
   const playDing = useCallback(() => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+
       const playTone = (freq: number, start: number, duration: number) => {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime + start);
-        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + start + 0.05);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + start);
+        gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + start + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
         oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start(audioCtx.currentTime + start);
-        oscillator.stop(audioCtx.currentTime + start + duration);
+        gainNode.connect(ctx.destination);
+        oscillator.start(ctx.currentTime + start);
+        oscillator.stop(ctx.currentTime + start + duration);
       };
-      playTone(880, 0, 0.3);
-      playTone(660, 0.2, 0.4);
+      playTone(523.25, 0, 0.5); // C5
+      playTone(659.25, 0.15, 0.5); // E5
+      playTone(783.99, 0.3, 0.6); // G5
     } catch (e) {
-      console.warn("Audio Context blocked.");
+      console.warn("Audio blocked by browser policy");
     }
   }, []);
 
@@ -84,7 +92,7 @@ const App: React.FC = () => {
         tablesEnabled: false,
         deliveryEnabled: configRes.data.delivery_enabled,
         counterEnabled: configRes.data.counter_enabled,
-        statusPanelEnabled: configRes.data.status_panel_enabled
+        status_panel_enabled: configRes.data.status_panel_enabled
       });
     }
 
@@ -110,7 +118,28 @@ const App: React.FC = () => {
     setDbStatus('ok');
   }, []);
 
-  // PERSISTÊNCIA DE LOGIN: Verifica sessão ativa ao carregar
+  // Monitoramento Realtime para novos pedidos
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', table: 'tables', schema: 'public' }, (payload) => {
+        const newData = payload.new as any;
+        const oldData = payload.old as any;
+
+        // Se uma mesa mudou de livre para ocupada, é um novo pedido
+        if (newData.status === 'occupied' && (!oldData || oldData.status === 'free')) {
+          playDing();
+          setShowNewOrderAlert(true);
+        }
+        fetchData();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isLoggedIn, playDing, fetchData]);
+
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -118,22 +147,18 @@ const App: React.FC = () => {
       setIsLoadingLogin(false);
       if (session) fetchData();
     };
-
     checkSession();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
       if (session) fetchData();
     });
-
     return () => subscription.unsubscribe();
   }, [fetchData]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'menu') setIsCustomerView(true);
-    fetchData();
-  }, [fetchData]);
+  }, []);
 
   const handleUpdateStoreConfig = async (newCfg: StoreConfig) => {
     setStoreConfig(newCfg);

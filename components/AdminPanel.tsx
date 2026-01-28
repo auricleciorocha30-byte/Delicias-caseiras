@@ -163,27 +163,77 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const handlePrint = (order: Order) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+    
+    const dateStr = new Date(order.timestamp).toLocaleString('pt-BR');
+    const orderTypeStr = order.orderType === 'delivery' ? 'ENTREGA' : 'RETIRADA/BALCÃO';
+
     const itemsHtml = order.items.map(item => `
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-weight:bold;">
-        <span>${item.quantity}x ${item.name.toUpperCase()}</span>
-        <span>R$ ${(item.price * item.quantity).toFixed(2)}</span>
+      <div style="border-bottom: 1px dashed #ccc; padding: 4px 0;">
+        <div style="display:flex;justify-content:space-between;font-weight:bold;">
+          <span>${item.quantity}x ${item.name.toUpperCase()}</span>
+          <span>R$ ${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+        ${item.observation ? `<div style="font-size: 0.8em; color: #555;">OBS: ${item.observation}</div>` : ''}
       </div>
     `).join('');
     
     printWindow.document.write(`
       <html>
-        <head><style>body { font-family: 'Courier New', monospace; width: 80mm; padding: 5mm; }</style></head>
+        <head>
+          <title>Imprimir Pedido #${order.id}</title>
+          <style>
+            body { 
+              font-family: 'Courier New', monospace; 
+              width: 80mm; 
+              padding: 5mm; 
+              margin: 0 auto;
+              color: #000;
+              font-size: 12px;
+            }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .title { font-size: 16px; margin-bottom: 5px; }
+            .hr { border-bottom: 1px solid #000; margin: 10px 0; }
+            .dashed { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .flex { display: flex; justify-content: space-between; }
+            .mt-10 { margin-top: 10px; }
+            @media print {
+              body { width: 80mm; margin: 0; }
+              @page { margin: 0; }
+            }
+          </style>
+        </head>
         <body onload="window.print();window.close();">
-          <div style="text-align:center;font-weight:bold;">${STORE_INFO.name.toUpperCase()}</div>
-          <hr/>
-          <div>PEDIDO: #${order.id}</div>
-          <div>CLIENTE: ${order.customerName}</div>
-          <hr/>
-          ${itemsHtml}
-          <hr/>
-          <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:1.2em;">
+          <div class="center bold title">${STORE_INFO.name.toUpperCase()}</div>
+          <div class="center">${STORE_INFO.whatsapp}</div>
+          <div class="hr"></div>
+          
+          <div class="bold">PEDIDO: #${order.id}</div>
+          <div>DATA: ${dateStr}</div>
+          <div>TIPO: ${orderTypeStr}</div>
+          <div class="hr"></div>
+          
+          <div class="bold">CLIENTE: ${order.customerName.toUpperCase()}</div>
+          ${order.customerPhone ? `<div>TEL: ${order.customerPhone}</div>` : ''}
+          ${order.address ? `<div class="mt-10 bold">ENDEREÇO:</div><div>${order.address}</div>` : ''}
+          <div class="hr"></div>
+          
+          <div class="bold">ITENS DO PEDIDO:</div>
+          <div class="mt-10">${itemsHtml}</div>
+          
+          <div class="dashed"></div>
+          <div class="flex"><span>SUBTOTAL:</span><span>R$ ${order.total.toFixed(2)}</span></div>
+          ${order.discount ? `<div class="flex"><span>DESCONTO:</span><span>- R$ ${order.discount.toFixed(2)}</span></div>` : ''}
+          <div class="flex bold" style="font-size: 1.2em; margin-top: 5px;">
             <span>TOTAL:</span><span>R$ ${order.finalTotal.toFixed(2)}</span>
           </div>
+          <div class="dashed"></div>
+          
+          <div class="bold">PAGAMENTO: ${order.paymentMethod.toUpperCase()}</div>
+          ${order.observation ? `<div class="mt-10"><span class="bold">OBSERVAÇÃO GERAL:</span><br/>${order.observation}</div>` : ''}
+          
+          <div class="hr" style="margin-top: 20px;"></div>
+          <div class="center bold">AGRADECEMOS A PREFERÊNCIA!</div>
         </body>
       </html>
     `);
@@ -626,7 +676,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex justify-between items-start mb-6">
                  <div><h3 className="text-2xl md:text-3xl font-black uppercase italic">{selectedOrder.currentOrder?.customerName}</h3><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">#{selectedOrder.currentOrder?.id}</p></div>
                  <div className="flex gap-2">
-                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-black text-[#FF7F11] p-3 rounded-full"><PrinterIcon size={20}/></button>
+                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-black text-[#FF7F11] p-3 rounded-full hover:scale-110 transition-all"><PrinterIcon size={20}/></button>
                     <button onClick={() => setSelectedOrderId(null)} className="p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
                  </div>
               </div>
@@ -645,7 +695,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     {selectedOrder.currentOrder?.items.map((item, idx) => (
                        <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-xl border">
                           <img src={item.image} onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=Food'; }} className="w-12 h-12 rounded-lg object-cover" />
-                          <div className="flex-1"><p className="font-black text-[10px] uppercase">{item.name}</p><p className="text-[9px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p></div>
+                          <div className="flex-1">
+                            <p className="font-black text-[10px] uppercase">{item.name}</p>
+                            <p className="text-[9px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p>
+                            {item.observation && <p className="text-[9px] italic text-brand-orange">Obs: {item.observation}</p>}
+                          </div>
                           <span className="font-black italic text-[#FF7F11] text-xs">R$ {(item.price * item.quantity).toFixed(2)}</span>
                        </div>
                     ))}

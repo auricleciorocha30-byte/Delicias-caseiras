@@ -133,7 +133,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       </div>
 
       <div className="min-h-[60vh]">
-        {/* ABA MARKETING - CORREÇÃO DE SELEÇÃO */}
+        {/* ABA MARKETING */}
         {activeTab === 'marketing' && (
           <div className="space-y-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -264,28 +264,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
       </div>
 
-      {/* MODAL PRODUTO COM PREVIEW DE IMAGEM */}
+      {/* MODAL PRODUTO COM PREVIEW DE IMAGEM E FUNÇÃO DE ESTOQUE */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
             <h3 className="text-xl md:text-2xl font-black italic mb-8 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Nova'} Marmita Ju</h3>
             
-            {/* AREA DE PREVIEW DA IMAGEM CORRIGIDA */}
+            {/* AREA DE PREVIEW DA IMAGEM */}
             <div className="w-full aspect-square bg-gray-100 rounded-[2rem] mb-6 overflow-hidden flex items-center justify-center border-4 border-dashed border-gray-200">
                {editingProduct?.image ? (
                  <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=URL+INVALIDA'; }} />
                ) : (
                  <div className="text-center p-10 opacity-20 grayscale">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <p className="text-[10px] font-black uppercase tracking-widest leading-none">Aguardando URL da Imagem...</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest leading-none">Cole a URL da foto abaixo</p>
                  </div>
                )}
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-4">
               <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DA MARMITA" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM (COLE O LINK AQUI)" className="w-full bg-gray-100 border-2 border-[#FF7F11]/20 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" />
+              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM (LINK DA FOTO)" className="w-full bg-gray-100 border-2 border-[#FF7F11]/20 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" />
               <div className="grid grid-cols-2 gap-4">
                 <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black outline-none" required />
                 <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-[10px] font-black uppercase outline-none">
@@ -293,6 +293,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </select>
               </div>
               <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCRIÇÃO / INGREDIENTES" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black h-20 resize-none outline-none focus:border-[#FF7F11]" />
+              
+              {/* RESTAURAÇÃO DA FUNÇÃO ATIVAR/DESATIVAR NO ESTOQUE */}
+              <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border-2 border-dashed border-gray-200">
+                <div className="flex flex-col">
+                   <span className="text-[10px] font-black uppercase tracking-widest">Disponibilidade</span>
+                   <span className="text-[9px] font-bold text-gray-400 uppercase">Item visível no cardápio</span>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setEditingProduct({...editingProduct, isAvailable: !editingProduct.isAvailable})}
+                  className={`w-14 h-7 rounded-full relative transition-all duration-300 ${editingProduct?.isAvailable ? 'bg-[#6C7A1D]' : 'bg-red-400'}`}
+                >
+                   <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm ${editingProduct?.isAvailable ? 'left-8' : 'left-1'}`}></div>
+                </button>
+              </div>
+
               <button type="submit" className="w-full bg-black text-[#FF7F11] py-5 rounded-2xl font-black uppercase text-xs shadow-2xl hover:scale-[1.02] transition-all">Salvar Marmita</button>
             </form>
           </div>

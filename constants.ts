@@ -3,8 +3,8 @@ import { Product, StoreInfo, Table } from './types';
 
 export const STORE_INFO: StoreInfo = {
   name: 'Ju Marmitas Caseiras',
-  slogan: 'SAÚDE E SABOR NO SEU DIA A DIA 🥗',
-  hours: 'Segunda a Sábado | 10:30h às 14:30h',
+  slogan: 'O SABOR QUE ACOLHE COM TEMPERO DE CASA 🍛',
+  hours: 'Segunda a Sábado | 10:00h às 15:00h',
   whatsapp: '5585997644326'
 };
 
@@ -26,4 +26,4 @@ export const INITIAL_TABLES: Table[] = [
   }))
 ];
 
-export const MENU_ITEMS: Product[] = []; // Os itens virão do Supabase
+export const MENU_ITEMS: Product[] = []; // Carregado via Supabase

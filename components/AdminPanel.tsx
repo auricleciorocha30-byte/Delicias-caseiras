@@ -105,12 +105,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <p className="font-black text-xl italic leading-none">NOVO PEDIDO CHEGOU!</p>
               </div>
             </div>
-            <span className="bg-brand-dark px-4 py-2 rounded-2xl text-[10px] font-black uppercase">OK</span>
+            <span className="bg-[#1A1A1A] px-4 py-2 rounded-2xl text-[10px] font-black uppercase">OK</span>
           </button>
         </div>
       )}
 
-      {/* HEADER ADMIN */}
+      {/* HEADER ADMIN COM BOTÃO VER CARDÁPIO RESTAURADO */}
       <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl mb-8 flex flex-col md:flex-row justify-between items-center gap-6 border-b-8 border-[#FF7F11]">
         <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-4">
@@ -120,7 +120,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <p className="text-[9px] text-white uppercase font-black tracking-[0.2em] mt-1">Gestão Marmitas</p>
             </div>
           </div>
-          <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-4 py-3 rounded-xl">Sair</button>
+          <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-4 py-3 rounded-xl md:hidden">Sair</button>
         </div>
         
         <nav className="flex bg-gray-900 p-1.5 rounded-2xl gap-1 w-full md:w-auto overflow-x-auto no-scrollbar">
@@ -130,9 +130,62 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
           ))}
         </nav>
+
+        <div className="hidden md:flex gap-2">
+          <button 
+            onClick={() => window.open(window.location.origin + '?view=menu', '_blank')} 
+            className="bg-[#6C7A1D] text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+          >
+            <span>Ver Cardápio</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </button>
+          <button onClick={onLogout} className="bg-red-600 text-white font-black text-[10px] uppercase px-6 py-4 rounded-2xl hover:scale-105 transition-all">Sair</button>
+        </div>
       </div>
 
       <div className="min-h-[60vh]">
+        {/* ABA AJUSTES (SETUP) - RESTAURADA */}
+        {activeTab === 'setup' && (
+          <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
+            <div className="bg-white p-8 md:p-12 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
+               <h3 className="text-xl md:text-2xl font-black italic uppercase mb-10 text-center">Configurações da Loja</h3>
+               <div className="space-y-6">
+                 <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                    <div>
+                      <p className="font-black text-[11px] uppercase tracking-widest">Delivery (Entrega)</p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase">Habilitar pedidos para entrega em casa</p>
+                    </div>
+                    <button 
+                      onClick={() => onUpdateStoreConfig({ ...storeConfig, deliveryEnabled: !storeConfig.deliveryEnabled })}
+                      className={`w-16 h-8 rounded-full relative transition-all duration-300 ${storeConfig.deliveryEnabled ? 'bg-[#6C7A1D]' : 'bg-gray-300'}`}
+                    >
+                       <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-md ${storeConfig.deliveryEnabled ? 'left-9' : 'left-1'}`}></div>
+                    </button>
+                 </div>
+
+                 <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                    <div>
+                      <p className="font-black text-[11px] uppercase tracking-widest">Balcão (Retirada)</p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase">Habilitar pedidos para retirar na loja</p>
+                    </div>
+                    <button 
+                      onClick={() => onUpdateStoreConfig({ ...storeConfig, counterEnabled: !storeConfig.counterEnabled })}
+                      className={`w-16 h-8 rounded-full relative transition-all duration-300 ${storeConfig.counterEnabled ? 'bg-[#6C7A1D]' : 'bg-gray-300'}`}
+                    >
+                       <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-md ${storeConfig.counterEnabled ? 'left-9' : 'left-1'}`}></div>
+                    </button>
+                 </div>
+               </div>
+               
+               <div className="mt-12 p-6 bg-[#FFF9E5] rounded-3xl border-2 border-[#FF7F11]/20">
+                  <p className="text-[10px] font-black uppercase text-center text-[#FF7F11] tracking-widest">
+                    Nota: Se ambas estiverem desligadas, o cardápio aparecerá como "Loja Fechada" para os clientes.
+                  </p>
+               </div>
+            </div>
+          </div>
+        )}
+
         {/* ABA MARKETING */}
         {activeTab === 'marketing' && (
           <div className="space-y-10">
@@ -153,13 +206,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </select>
                   </div>
                   {loyalty.scopeType === 'category' && (
-                    <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-[#6C7A1D]">
+                    <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none">
                       <option value="">Selecione a Categoria...</option>
                       {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   )}
                   {loyalty.scopeType === 'product' && (
-                    <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-[#6C7A1D]">
+                    <select value={loyalty.scopeValue} onChange={e => handleUpdateLoyalty({ scopeValue: e.target.value })} className="w-full bg-gray-50 border-2 p-4 rounded-2xl font-black text-xs uppercase outline-none">
                       <option value="">Selecione o Produto...</option>
                       {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
@@ -170,41 +223,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#FF7F11]">
                  <div className="flex justify-between items-center mb-10">
                     <h3 className="text-xl md:text-2xl font-black italic uppercase">🎫 Cupons Ju</h3>
-                    <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-lg">+ Novo Cupom</button>
+                    <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-[#1A1A1A] text-[#FF7F11] px-4 py-2 rounded-xl font-black text-[9px] uppercase shadow-lg">+ Novo</button>
                  </div>
                  <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
                     {coupons.map(c => (
                       <div key={c.id} className="p-5 bg-gray-50 rounded-2xl border flex justify-between items-center">
                         <div>
                           <p className="font-black uppercase text-xs">{c.code} - {c.percentage}% OFF</p>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{c.scopeType === 'all' ? 'Todos' : c.scopeValue}</p>
+                          <p className="text-[8px] font-black text-gray-400 uppercase">{c.scopeValue || 'Geral'}</p>
                         </div>
-                        <button onClick={async () => { await supabase.from('coupons').delete().eq('id', c.id); fetchMarketing(); }} className="text-red-500 hover:scale-110 transition-all"><TrashIcon size={18}/></button>
+                        <button onClick={async () => { await supabase.from('coupons').delete().eq('id', c.id); fetchMarketing(); }} className="text-red-500"><TrashIcon size={18}/></button>
                       </div>
                     ))}
                  </div>
               </div>
             </div>
-
-            <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
-              <h3 className="text-xl md:text-2xl font-black italic uppercase mb-8">👥 Participantes Fidelidade</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {loyaltyUsers.map(u => (
-                   <div key={u.phone} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-transparent hover:border-[#FF7F11] transition-all flex justify-between items-center group">
-                      <div>
-                        <h4 className="font-black text-sm uppercase">{u.name || 'Cliente'}</h4>
-                        <p className="text-[10px] font-bold text-gray-400">{u.phone}</p>
-                        <div className="mt-2 inline-block bg-[#6C7A1D]/10 text-[#6C7A1D] px-3 py-1 rounded-full text-[9px] font-black uppercase">R$ {u.accumulated.toFixed(2)} acumulados</div>
-                      </div>
-                      <button onClick={() => handleDeleteLoyaltyUser(u.phone)} className="p-3 bg-white text-red-500 rounded-2xl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"><TrashIcon size={18} /></button>
-                   </div>
-                 ))}
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ABA PRODUTOS - MEU CARDÁPIO */}
+        {/* ABA PRODUTOS */}
         {activeTab === 'menu' && (
           <div className="bg-white p-4 md:p-10 rounded-[2rem] md:rounded-[4rem] shadow-xl border-t-8 border-[#1A1A1A]">
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
@@ -218,7 +255,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-8">
               {menuItems.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
-                <div key={item.id} className="bg-gray-50 p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border-2 relative shadow-sm hover:shadow-lg transition-all">
+                <div key={item.id} className={`bg-gray-50 p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border-2 relative shadow-sm hover:shadow-lg transition-all ${!item.isAvailable ? 'opacity-50 grayscale' : 'border-transparent'}`}>
                   <div className="w-full aspect-square bg-gray-200 rounded-[1.5rem] md:rounded-[2rem] mb-3 overflow-hidden">
                     <img src={item.image} onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=' + item.name.charAt(0); }} className="w-full h-full object-cover" />
                   </div>
@@ -264,41 +301,59 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
       </div>
 
-      {/* MODAL PRODUTO COM PREVIEW DE IMAGEM E FUNÇÃO DE ESTOQUE */}
+      {/* MODAL PRODUTO - CORREÇÃO DE PREVIEW DE IMAGEM */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
             <h3 className="text-xl md:text-2xl font-black italic mb-8 uppercase text-center">{editingProduct?.id ? 'Editar' : 'Nova'} Marmita Ju</h3>
             
-            {/* AREA DE PREVIEW DA IMAGEM */}
+            {/* AREA DE PREVIEW DA IMAGEM - LÓGICA CORRIGIDA */}
             <div className="w-full aspect-square bg-gray-100 rounded-[2rem] mb-6 overflow-hidden flex items-center justify-center border-4 border-dashed border-gray-200">
-               {editingProduct?.image ? (
-                 <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=URL+INVALIDA'; }} />
+               {editingProduct?.image && editingProduct.image.length > 5 ? (
+                 <img 
+                   src={editingProduct.image} 
+                   alt="Preview" 
+                   className="w-full h-full object-cover" 
+                   onError={(e) => { 
+                     // Só altera para "URL Invalida" se houver de fato um erro ao carregar após o input
+                     e.currentTarget.src = 'https://placehold.co/400x400/FF7F11/FFFFFF?text=URL+INVALIDA'; 
+                   }} 
+                 />
                ) : (
-                 <div className="text-center p-10 opacity-20 grayscale">
+                 <div className="text-center p-10 opacity-30">
                     <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <p className="text-[10px] font-black uppercase tracking-widest leading-none">Cole a URL da foto abaixo</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest leading-none">Insira o Link da Imagem</p>
                  </div>
                )}
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-4">
               <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DA MARMITA" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM (LINK DA FOTO)" className="w-full bg-gray-100 border-2 border-[#FF7F11]/20 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" />
+              
+              <div className="space-y-1">
+                <p className="text-[8px] font-black text-[#FF7F11] uppercase ml-2 tracking-widest">Link da Imagem (URL)</p>
+                <input 
+                  value={editingProduct?.image || ''} 
+                  onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} 
+                  placeholder="Ex: https://site.com/foto.jpg" 
+                  className="w-full bg-gray-100 border-2 border-[#FF7F11]/20 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-[#FF7F11]" 
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black outline-none" required />
                 <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-[10px] font-black uppercase outline-none">
                   {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
+              
               <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCRIÇÃO / INGREDIENTES" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black h-20 resize-none outline-none focus:border-[#FF7F11]" />
               
-              {/* RESTAURAÇÃO DA FUNÇÃO ATIVAR/DESATIVAR NO ESTOQUE */}
               <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border-2 border-dashed border-gray-200">
                 <div className="flex flex-col">
                    <span className="text-[10px] font-black uppercase tracking-widest">Disponibilidade</span>
-                   <span className="text-[9px] font-bold text-gray-400 uppercase">Item visível no cardápio</span>
+                   <span className="text-[9px] font-bold text-gray-400 uppercase">Item em estoque</span>
                 </div>
                 <button 
                   type="button"
@@ -311,43 +366,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
               <button type="submit" className="w-full bg-black text-[#FF7F11] py-5 rounded-2xl font-black uppercase text-xs shadow-2xl hover:scale-[1.02] transition-all">Salvar Marmita</button>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CUPOM - SELEÇÃO DINÂMICA DE ESCOPO */}
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl overflow-y-auto max-h-[90vh]">
-             <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full"><CloseIcon size={20}/></button>
-             <h3 className="text-xl md:text-2xl font-black italic mb-10 uppercase text-center">Novo Cupom Ju</h3>
-             <form onSubmit={async (e) => {
-               e.preventDefault();
-               if(!editingCoupon.code || !editingCoupon.percentage) return;
-               await supabase.from('coupons').insert([{ code: editingCoupon.code.toUpperCase().trim(), percentage: editingCoupon.percentage, is_active: true, scope_type: editingCoupon.scopeType, scope_value: editingCoupon.scopeValue }]);
-               setIsCouponModalOpen(false); fetchMarketing();
-             }} className="space-y-6">
-                <input placeholder="CÓDIGO (EX: JU10)" value={editingCoupon?.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none focus:border-[#FF7F11]" required />
-                <input type="number" placeholder="% DESCONTO" value={editingCoupon?.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black outline-none" required />
-                <select value={editingCoupon?.scopeType} onChange={e => setEditingCoupon({...editingCoupon, scopeType: e.target.value as any, scopeValue: ''})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-4 text-xs font-black uppercase outline-none">
-                  <option value="all">Todo o Cardápio</option>
-                  <option value="category">Uma Categoria</option>
-                  <option value="product">Um Produto</option>
-                </select>
-                {editingCoupon?.scopeType === 'category' && (
-                  <select value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none" required>
-                    <option value="">Selecione a Categoria...</option>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                )}
-                {editingCoupon?.scopeType === 'product' && (
-                  <select value={editingCoupon?.scopeValue} onChange={e => setEditingCoupon({...editingCoupon, scopeValue: e.target.value})} className="w-full bg-gray-50 border-2 rounded-xl px-6 py-5 text-xs font-black uppercase outline-none" required>
-                    <option value="">Selecione o Produto...</option>
-                    {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                )}
-                <button type="submit" className="w-full bg-black text-[#FF7F11] py-6 rounded-3xl font-black uppercase text-xs shadow-2xl">Ativar Cupom</button>
-             </form>
           </div>
         </div>
       )}

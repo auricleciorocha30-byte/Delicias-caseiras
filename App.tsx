@@ -58,7 +58,7 @@ const App: React.FC = () => {
 
       const playTone = (freq: number, start: number, duration: number) => {
         const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
+        const { gainNode } = { gainNode: ctx.createGain() }; // Fixed typo in local variable declaration if needed, but the logic remains
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(freq, ctx.currentTime + start);
         gainNode.gain.setValueAtTime(0, ctx.currentTime + start);
@@ -92,7 +92,8 @@ const App: React.FC = () => {
         tablesEnabled: false,
         deliveryEnabled: configRes.data.delivery_enabled,
         counterEnabled: configRes.data.counter_enabled,
-        status_panel_enabled: configRes.data.status_panel_enabled
+        // Correcting status_panel_enabled to statusPanelEnabled
+        statusPanelEnabled: configRes.data.status_panel_enabled
       });
     }
 
@@ -111,7 +112,7 @@ const App: React.FC = () => {
       const merged = [...INITIAL_TABLES];
       tableRes.data.forEach((dbT: any) => {
         const idx = merged.findIndex(t => t.id === dbT.id);
-        if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, currentOrder: dbT.current_order };
+        if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, current_order: dbT.current_order };
       });
       setTables(merged);
     }

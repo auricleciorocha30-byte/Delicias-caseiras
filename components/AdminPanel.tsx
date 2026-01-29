@@ -75,8 +75,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     
     const { data: lConfig } = await supabase.from('loyalty_config').select('*').maybeSingle();
     if (lConfig) setLoyalty({ 
-      isActive: lConfig.is_active, spending_goal: Number(lConfig.spending_goal), 
-      scope_type: lConfig.scope_type as any, scope_value: lConfig.scope_value || '' 
+      isActive: lConfig.is_active, 
+      spendingGoal: Number(lConfig.spending_goal), 
+      scopeType: lConfig.scope_type as any, 
+      scopeValue: lConfig.scope_value || '' 
     });
     
     const { data: lUsers } = await supabase.from('loyalty_users').select('*').order('accumulated', { ascending: false });
@@ -349,12 +351,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
-        {/* ABA MARKETING */}
+        {/* ABA MARKETING (RESTAURADA TOTALMENTE) */}
         {activeTab === 'marketing' && (
-          <div className="space-y-10">
-            <div className="bg-white p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-green">
+          <div className="space-y-10 animate-in fade-in duration-500">
+            {/* PROGRAMA DE FIDELIDADE */}
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-green">
               <div className="flex justify-between items-center mb-10">
-                <h3 className="text-2xl font-black italic uppercase">Programa de Fidelidade</h3>
+                <h3 className="text-2xl font-black italic uppercase leading-none">Programa Fidelidade</h3>
                 <button onClick={() => handleUpdateLoyalty({ isActive: !loyalty.isActive })} className={`w-16 h-8 rounded-full relative transition-all ${loyalty.isActive ? 'bg-brand-green' : 'bg-gray-300'}`}><div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${loyalty.isActive ? 'left-9' : 'left-1'}`}></div></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -389,45 +392,50 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
 
-            <div className="bg-white p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-orange">
+            {/* GESTÃO DE CUPONS */}
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-orange">
               <div className="flex justify-between items-center mb-10">
-                <h3 className="text-2xl font-black italic uppercase">Cupons de Desconto</h3>
+                <h3 className="text-2xl font-black italic uppercase leading-none">Cupons de Desconto</h3>
                 <button onClick={() => { setEditingCoupon({ code: '', percentage: 10, isActive: true, scopeType: 'all', scopeValue: '' }); setIsCouponModalOpen(true); }} className="bg-brand-dark text-brand-orange px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg hover:scale-105 active:scale-95 transition-all">+ Novo Cupom</button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {coupons.map(c => (
-                  <div key={c.id} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-sm">
-                    <h4 className="text-2xl font-black italic text-brand-orange mb-1 tracking-tighter">{c.code}</h4>
+                  <div key={c.id} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-sm relative group">
+                    <h4 className="text-2xl font-black italic text-brand-orange mb-1 tracking-tighter uppercase">{c.code}</h4>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{c.percentage}% OFF • {c.isActive ? 'Ativo' : 'Inativo'}</p>
                     <p className="text-[8px] font-black text-gray-300 uppercase mt-2">Escopo: {c.scopeType === 'all' ? 'Tudo' : c.scopeType === 'category' ? 'Categoria' : 'Produto'}</p>
                     <button onClick={() => handleDeleteCoupon(c.id)} className="mt-4 p-3 bg-white text-red-500 rounded-xl shadow-sm hover:bg-red-50 transition-all"><TrashIcon size={18}/></button>
                   </div>
                 ))}
-                {coupons.length === 0 && <p className="col-span-full text-center py-10 text-gray-400 uppercase font-black text-[10px] opacity-30">Nenhum cupom cadastrado</p>}
+                {coupons.length === 0 && <p className="col-span-full text-center py-10 text-gray-400 uppercase font-black text-[10px] opacity-30 italic">Nenhum cupom cadastrado</p>}
               </div>
             </div>
 
-            <div className="bg-white p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-dark">
-              <h3 className="text-2xl font-black italic uppercase mb-10">Ranking de Clientes</h3>
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left">
+            {/* RANKING DE CLIENTES */}
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-dark overflow-hidden">
+              <h3 className="text-2xl font-black italic uppercase mb-10 leading-none">Ranking de Clientes</h3>
+              <div className="overflow-x-auto no-scrollbar -mx-8 md:-mx-12">
+                <table className="w-full text-left min-w-[500px]">
                   <thead className="border-b-2 text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                    <tr><th className="pb-4">Cliente</th><th className="pb-4">WhatsApp</th><th className="pb-4 text-right">Acumulado</th><th className="pb-4 text-center">Ações</th></tr>
+                    <tr><th className="px-8 md:px-12 pb-4">Cliente</th><th className="pb-4">WhatsApp</th><th className="pb-4 text-right">Acumulado</th><th className="pb-4 text-center">Ações</th></tr>
                   </thead>
                   <tbody className="divide-y text-[11px] font-bold">
-                    {loyaltyUsers.map(user => (
-                      <tr key={user.phone} className="hover:bg-gray-50 transition-all">
-                        <td className="py-5 uppercase truncate max-w-[150px]">{user.name}</td>
-                        <td className="py-5 font-mono">{user.phone}</td>
-                        <td className="py-5 text-right text-brand-orange font-black">R$ {user.accumulated.toFixed(2)}</td>
+                    {loyaltyUsers.map((user, idx) => (
+                      <tr key={user.phone} className="hover:bg-gray-50 transition-all group">
+                        <td className="px-8 md:px-12 py-5 uppercase truncate max-w-[200px]">
+                          <span className="text-brand-orange mr-2">#{idx+1}</span>
+                          {user.name}
+                        </td>
+                        <td className="py-5 font-mono text-gray-400">{user.phone}</td>
+                        <td className="py-5 text-right text-brand-orange font-black text-[13px]">R$ {user.accumulated.toFixed(2)}</td>
                         <td className="py-5 text-center">
-                          <button onClick={() => handleDeleteLoyaltyUser(user.phone)} className="text-red-400 hover:text-red-600 transition-colors p-2">
+                          <button onClick={() => handleDeleteLoyaltyUser(user.phone)} className="text-red-300 hover:text-red-600 transition-colors p-2">
                              <TrashIcon size={16}/>
                           </button>
                         </td>
                       </tr>
                     ))}
-                    {loyaltyUsers.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 uppercase font-black text-[10px] opacity-30">Nenhum cliente no programa</td></tr>}
+                    {loyaltyUsers.length === 0 && <tr><td colSpan={4} className="py-16 text-center text-gray-400 uppercase font-black text-[10px] opacity-30 italic">Nenhum cliente registrado no programa</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -435,146 +443,110 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
+        {/* ABA AJUSTES (RESTAURADA TOTALMENTE) */}
         {activeTab === 'setup' && (
-          <div className="max-w-2xl mx-auto bg-white p-12 rounded-[4rem] shadow-xl border-t-8 border-brand-dark">
-            <h3 className="text-2xl font-black italic uppercase mb-12 text-center">Configurações da Loja</h3>
-            <div className="space-y-8">
-               <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border-2 border-dashed">
-                  <div><p className="font-black text-[12px] uppercase">Delivery</p><p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Permitir pedidos de entrega no cardápio</p></div>
-                  <button onClick={() => onUpdateStoreConfig({...storeConfig, deliveryEnabled: !storeConfig.deliveryEnabled})} className={`w-16 h-8 rounded-full relative transition-all ${storeConfig.deliveryEnabled ? 'bg-brand-green' : 'bg-gray-300'}`}><div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${storeConfig.deliveryEnabled ? 'left-9' : 'left-1'}`}></div></button>
+          <div className="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-[3.5rem] shadow-xl border-t-8 border-brand-dark animate-in slide-in-from-bottom duration-500">
+            <h3 className="text-2xl font-black italic uppercase mb-12 text-center leading-none">Configurações da Loja</h3>
+            <div className="space-y-6">
+               <div className="flex items-center justify-between p-6 md:p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 hover:border-brand-green/30 transition-all">
+                  <div>
+                    <p className="font-black text-[13px] uppercase text-brand-dark">Entregas (Delivery)</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Habilitar/Desabilitar no cardápio</p>
+                  </div>
+                  <button onClick={() => onUpdateStoreConfig({...storeConfig, deliveryEnabled: !storeConfig.deliveryEnabled})} className={`w-16 h-8 rounded-full relative transition-all ${storeConfig.deliveryEnabled ? 'bg-brand-green shadow-inner' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${storeConfig.deliveryEnabled ? 'left-9' : 'left-1'}`}></div>
+                  </button>
                </div>
-               <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border-2 border-dashed">
-                  <div><p className="font-black text-[12px] uppercase">Retirada / Balcão</p><p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Permitir pedidos de balcão no cardápio</p></div>
-                  <button onClick={() => onUpdateStoreConfig({...storeConfig, counterEnabled: !storeConfig.counterEnabled})} className={`w-14 h-7 rounded-full relative transition-all ${storeConfig.counterEnabled ? 'bg-brand-green' : 'bg-gray-300'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${storeConfig.counterEnabled ? 'left-8' : 'left-1'}`}></div></button>
+               <div className="flex items-center justify-between p-6 md:p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 hover:border-brand-green/30 transition-all">
+                  <div>
+                    <p className="font-black text-[13px] uppercase text-brand-dark">Retirada / Balcão</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Habilitar/Desabilitar no cardápio</p>
+                  </div>
+                  <button onClick={() => onUpdateStoreConfig({...storeConfig, counterEnabled: !storeConfig.counterEnabled})} className={`w-16 h-8 rounded-full relative transition-all ${storeConfig.counterEnabled ? 'bg-brand-green shadow-inner' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${storeConfig.counterEnabled ? 'left-9' : 'left-1'}`}></div>
+                  </button>
                </div>
+            </div>
+            
+            <div className="mt-12 pt-12 border-t text-center">
+               <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">{STORE_INFO.name} Admin v2.0</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* MODAL DETALHES PEDIDO */}
-      {selectedOrderId && selectedOrder && (
-        <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
-           <div className="relative bg-white w-full max-w-2xl h-[85vh] rounded-[3rem] p-10 overflow-y-auto flex flex-col border-t-8 border-brand-orange shadow-2xl animate-in zoom-in duration-300 no-scrollbar">
-              <div className="flex justify-between items-start mb-6">
-                 <div><h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-brand-dark leading-none">{selectedOrder.currentOrder?.customerName}</h3><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">Pedido #{selectedOrder.currentOrder?.id}</p></div>
-                 <div className="flex gap-2">
-                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-brand-dark text-brand-orange p-3 rounded-full hover:scale-110 shadow-lg transition-all"><PrinterIcon size={20}/></button>
-                    <button onClick={() => setSelectedOrderId(null)} className="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={24}/></button>
-                 </div>
-              </div>
-              
-              <div className="flex-1 space-y-6">
-                 <div className="bg-gray-50 p-6 rounded-[2rem] border">
-                    <p className="text-[8px] font-black text-gray-400 mb-4 uppercase tracking-widest">Atualizar Status:</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                       {(['pending', 'preparing', 'ready', 'delivered'] as OrderStatus[]).map(s => (
-                          <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-4 rounded-xl text-[8px] font-black uppercase border-2 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-brand-orange text-white border-brand-dark shadow-md' : 'bg-white text-gray-400 border-gray-100'}`}>{STATUS_CFG[s].label}</button>
-                       ))}
-                    </div>
-                 </div>
-
-                 <div className="space-y-3">
-                    <p className="text-[9px] font-black text-gray-400 uppercase ml-2">Itens do Pedido:</p>
-                    {selectedOrder.currentOrder?.items.map((item, idx) => (
-                       <div key={idx} className="flex items-center gap-4 bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
-                          <img src={item.image} onError={e => e.currentTarget.src='https://placehold.co/100x100'} className="w-14 h-14 rounded-xl object-cover" />
-                          <div className="flex-1"><p className="font-black text-[12px] uppercase leading-tight text-brand-dark">{item.name}</p><p className="text-[10px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p></div>
-                          <span className="font-black italic text-brand-orange text-[14px]">R$ {(item.price * item.quantity).toFixed(2)}</span>
-                       </div>
-                    ))}
-                 </div>
-
-                 {selectedOrder.currentOrder?.address && (
-                   <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
-                     <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">Endereço de Entrega:</p>
-                     <p className="text-[11px] font-bold text-blue-900 leading-relaxed uppercase">{selectedOrder.currentOrder.address}</p>
-                   </div>
-                 )}
-              </div>
-
-              <div className="pt-8 mt-8 border-t flex justify-between items-center bg-white sticky bottom-0">
-                 <div className="text-left">
-                   <p className="text-[10px] text-gray-400 font-black uppercase">Total do Pedido</p>
-                   <p className="text-4xl font-black italic tracking-tighter text-brand-dark">R$ {selectedOrder.currentOrder?.finalTotal.toFixed(2)}</p>
-                 </div>
-                 <button onClick={() => handleCompleteOrder(selectedOrder)} className="bg-brand-green text-white px-12 py-6 rounded-2xl font-black uppercase text-[11px] shadow-2xl hover:brightness-110 active:scale-95 transition-all">Concluir ✅</button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* MODAL PDV */}
+      {/* MODAL PDV (MANTIDO COM AJUSTES MOBILE) */}
       {isManualOrderModalOpen && (
         <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
-          <div className="bg-white w-full max-w-5xl h-[90vh] rounded-[3rem] p-10 relative flex flex-col shadow-2xl overflow-hidden">
-            <button onClick={() => setIsManualOrderModalOpen(false)} className="absolute top-6 right-6 p-4 bg-gray-100 rounded-full active:scale-90 transition-all"><CloseIcon size={24}/></button>
-            <div className="mb-8"><h3 className="text-3xl font-black uppercase italic tracking-tighter text-brand-dark leading-none">Ponto de Venda (PDV)</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Lançamento de pedido presencial/manual</p></div>
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-hidden">
-               <div className="lg:col-span-7 flex flex-col gap-6 overflow-hidden">
-                  <input type="text" value={pdvSearchTerm} onChange={e => setPdvSearchTerm(e.target.value)} placeholder="PESQUISAR ITEM..." className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:border-brand-orange" />
-                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
+          <div className="bg-white w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 relative flex flex-col shadow-2xl overflow-y-auto md:overflow-hidden no-scrollbar">
+            <button onClick={() => setIsManualOrderModalOpen(false)} className="absolute top-4 right-4 md:top-6 md:right-6 p-3 md:p-4 bg-gray-100 rounded-full active:scale-90 transition-all z-20"><CloseIcon size={20}/></button>
+            <div className="mb-6 md:mb-8 pr-12"><h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-brand-dark leading-none">PDV</h3><p className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Lançamento de pedido presencial</p></div>
+            
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 md:overflow-hidden">
+               <div className="lg:col-span-7 flex flex-col gap-4 md:gap-6 md:overflow-hidden">
+                  <input type="text" value={pdvSearchTerm} onChange={e => setPdvSearchTerm(e.target.value)} placeholder="PESQUISAR ITEM..." className="w-full bg-gray-50 border-2 rounded-xl md:rounded-2xl px-5 py-3 md:px-6 md:py-4 text-xs font-black outline-none focus:border-brand-orange" />
+                  <div className="flex-1 min-h-[250px] overflow-y-auto no-scrollbar space-y-3 pb-4">
                      {menuItems.filter(p => p.isAvailable && p.name.toLowerCase().includes(pdvSearchTerm.toLowerCase())).map(item => (
                         <button key={item.id} onClick={() => {
                           const ex = manualOrderItems.find(i => i.id === item.id);
                           if(ex) setManualOrderItems(manualOrderItems.map(i => i.id === item.id ? {...i, quantity: i.quantity + 1} : i));
                           else setManualOrderItems([...manualOrderItems, {...item, quantity: 1}]);
-                        }} className="w-full flex items-center gap-4 bg-white p-4 rounded-xl border-2 border-transparent hover:border-brand-orange/30 shadow-sm text-left active:scale-[0.98] transition-all">
-                           <img src={item.image} className="w-16 h-16 rounded-lg object-cover shadow-inner" onError={e => e.currentTarget.src='https://placehold.co/100x100'}/>
-                           <div className="flex-1"><p className="text-[13px] font-black uppercase text-brand-dark">{item.name}</p><p className="text-[10px] font-black text-brand-orange mt-1">R$ {item.price.toFixed(2)}</p></div>
-                           <div className="bg-gray-100 p-3 rounded-lg"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4"/></svg></div>
+                        }} className="w-full flex items-center gap-3 md:gap-4 bg-white p-3 md:p-4 rounded-xl border-2 border-transparent hover:border-brand-orange/30 shadow-sm text-left active:scale-[0.98] transition-all">
+                           <img src={item.image} className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover shadow-inner" onError={e => e.currentTarget.src='https://placehold.co/100x100'}/>
+                           <div className="flex-1"><p className="text-[11px] md:text-[13px] font-black uppercase text-brand-dark leading-tight">{item.name}</p><p className="text-[10px] font-black text-brand-orange mt-1">R$ {item.price.toFixed(2)}</p></div>
+                           <div className="bg-gray-100 p-2 md:p-3 rounded-lg"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4"/></svg></div>
                         </button>
                      ))}
                   </div>
                </div>
-               <div className="lg:col-span-5 flex flex-col gap-6 bg-gray-50 p-8 rounded-[3rem] border-2 border-dashed border-gray-200 overflow-hidden shadow-inner">
-                  <div className="space-y-4">
-                    <input value={manualCustomer.name} onChange={e => setManualCustomer({...manualCustomer, name: e.target.value})} placeholder="NOME DO CLIENTE" className="w-full bg-white border-2 rounded-xl px-5 py-4 text-xs font-black uppercase outline-none focus:border-brand-orange" />
-                    <input value={manualCustomer.phone} onChange={e => setManualCustomer({...manualCustomer, phone: e.target.value})} placeholder="WHATSAPP (OPCIONAL)" className="w-full bg-white border-2 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-brand-orange" />
+               <div className="lg:col-span-5 flex flex-col gap-6 bg-gray-50 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-gray-200 shadow-inner md:overflow-hidden">
+                  <div className="space-y-3">
+                    <input value={manualCustomer.name} onChange={e => setManualCustomer({...manualCustomer, name: e.target.value})} placeholder="NOME DO CLIENTE" className="w-full bg-white border-2 rounded-xl px-4 py-3 text-[11px] font-black uppercase outline-none focus:border-brand-orange" />
+                    <input value={manualCustomer.phone} onChange={e => setManualCustomer({...manualCustomer, phone: e.target.value})} placeholder="WHATSAPP (OPCIONAL)" className="w-full bg-white border-2 rounded-xl px-4 py-3 text-[11px] font-black outline-none focus:border-brand-orange" />
                     <div className="flex gap-2">
                        {(['counter', 'delivery'] as const).map(type => (
-                         <button key={type} onClick={() => setManualCustomer({...manualCustomer, type})} className={`flex-1 py-4 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${manualCustomer.type === type ? 'bg-brand-dark text-white shadow-md' : 'bg-white text-gray-400'}`}>{type === 'counter' ? 'Balcão' : 'Entrega'}</button>
+                         <button key={type} onClick={() => setManualCustomer({...manualCustomer, type})} className={`flex-1 py-3 rounded-xl text-[8px] md:text-[9px] font-black uppercase border-2 transition-all ${manualCustomer.type === type ? 'bg-brand-dark text-white shadow-md' : 'bg-white text-gray-400'}`}>{type === 'counter' ? 'Balcão' : 'Entrega'}</button>
                        ))}
                     </div>
-                    {manualCustomer.type === 'delivery' && <textarea value={manualCustomer.address} onChange={e => setManualCustomer({...manualCustomer, address: e.target.value})} placeholder="ENDEREÇO..." className="w-full bg-white border-2 rounded-xl px-5 py-4 text-xs font-black h-20 resize-none outline-none shadow-sm animate-in slide-in-from-top duration-300"/>}
+                    {manualCustomer.type === 'delivery' && <textarea value={manualCustomer.address} onChange={e => setManualCustomer({...manualCustomer, address: e.target.value})} placeholder="ENDEREÇO..." className="w-full bg-white border-2 rounded-xl px-4 py-3 text-[10px] font-black h-16 resize-none outline-none shadow-sm animate-in slide-in-from-top duration-300"/>}
                     <div className="grid grid-cols-3 gap-2">
                       {(['Pix', 'Dinheiro', 'Cartão'] as const).map(m => (
                         <button key={m} onClick={() => setManualCustomer({...manualCustomer, paymentMethod: m})} className={`py-3 rounded-xl text-[8px] font-black uppercase border-2 transition-all ${manualCustomer.paymentMethod === m ? 'bg-brand-orange text-white border-brand-orange shadow-md' : 'bg-white text-gray-400'}`}>{m}</button>
                       ))}
                     </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 pt-4 border-t">
+                  <div className="flex-1 min-h-[100px] overflow-y-auto no-scrollbar space-y-2 pt-4 border-t">
                      {manualOrderItems.map(item => (
-                        <div key={item.id} className="flex justify-between items-center text-[10px] font-black uppercase bg-white p-3 rounded-xl border shadow-sm">
+                        <div key={item.id} className="flex justify-between items-center text-[10px] font-black uppercase bg-white p-2 md:p-3 rounded-xl border shadow-sm">
                            <span className="flex-1 truncate pr-2"><span className="text-brand-orange mr-1">{item.quantity}x</span> {item.name}</span>
                            <div className="flex items-center gap-3"><span>R$ {(item.price * item.quantity).toFixed(2)}</span><button onClick={() => setManualOrderItems(manualOrderItems.filter(i => i.id !== item.id))} className="text-red-500 font-black p-1 hover:bg-red-50 rounded-md transition-all">×</button></div>
                         </div>
                      ))}
-                     {manualOrderItems.length === 0 && <p className="text-center py-10 opacity-20 font-black uppercase text-[10px]">Sacola Vazia</p>}
+                     {manualOrderItems.length === 0 && <p className="text-center py-6 md:py-10 opacity-20 font-black uppercase text-[10px]">Sacola Vazia</p>}
                   </div>
-                  <div className="border-t pt-6"><p className="text-3xl font-black italic tracking-tighter">Total R$ {manualOrderItems.reduce((a, b) => a + (b.price * b.quantity), 0).toFixed(2)}</p><button onClick={handleCreateManualOrder} className="w-full bg-brand-dark text-brand-orange py-6 rounded-2xl font-black uppercase text-[11px] mt-4 shadow-2xl active:scale-95 transition-all">Lançar Pedido</button></div>
+                  <div className="border-t pt-4 md:pt-6 bg-gray-50 sticky bottom-0">
+                    <div className="flex justify-between items-end mb-2">
+                       <span className="text-[9px] font-black text-gray-400 uppercase">Total</span>
+                       <p className="text-2xl md:text-3xl font-black italic tracking-tighter leading-none">R$ {manualOrderItems.reduce((a, b) => a + (b.price * b.quantity), 0).toFixed(2)}</p>
+                    </div>
+                    <button onClick={handleCreateManualOrder} className="w-full bg-brand-dark text-brand-orange py-4 md:py-6 rounded-2xl font-black uppercase text-[10px] md:text-[11px] shadow-2xl active:scale-95 transition-all">Lançar Pedido</button>
+                  </div>
                </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL CONFIGURAR PRODUTO (UPLOAD DE IMAGEM) */}
+      {/* MODAIS DE CONFIGURAÇÃO (PRODUTO, CATEGORIA, CUPOM) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[3rem] p-12 relative shadow-2xl overflow-y-auto max-h-[95vh] no-scrollbar">
             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full active:scale-90 transition-all"><CloseIcon size={20}/></button>
-            <h3 className="text-2xl font-black italic mb-8 uppercase text-center tracking-tighter text-brand-dark">Configurar Marmita</h3>
-            
+            <h3 className="text-2xl font-black italic mb-8 uppercase text-center tracking-tighter text-brand-dark leading-none">Configurar Marmita</h3>
             <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-5">
-              
-              {/* AREA DE UPLOAD DE IMAGEM */}
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-gray-400 ml-2 tracking-widest">Foto da Marmita</p>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full aspect-video bg-gray-50 border-4 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-brand-orange/40 hover:bg-brand-orange/5 transition-all group overflow-hidden relative"
-                >
+                <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-video bg-gray-50 border-4 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-brand-orange/40 hover:bg-brand-orange/5 transition-all group overflow-hidden relative">
                   {editingProduct?.image ? (
                     <>
                       <img src={editingProduct.image} className="w-full h-full object-cover" />
@@ -584,64 +556,45 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </>
                   ) : (
                     <div className="text-center p-8">
-                      <div className="bg-white text-brand-orange p-4 rounded-full shadow-md mb-4 inline-block">
-                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4"/></svg>
-                      </div>
+                      <div className="bg-white text-brand-orange p-4 rounded-full shadow-md mb-4 inline-block"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4"/></svg></div>
                       <p className="font-black text-[10px] uppercase tracking-widest text-gray-400">Clique para selecionar foto</p>
                     </div>
                   )}
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleImageUpload} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
               </div>
-
               <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DO PRODUTO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-brand-orange" required />
-              
               <div className="grid grid-cols-2 gap-4">
                 <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none" required />
-                <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none">
-                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
+                <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none">{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select>
               </div>
-
               <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCRIÇÃO / INGREDIENTES" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black h-24 resize-none outline-none focus:border-brand-orange" />
-              
               <div className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-gray-200">
                 <div><span className="text-[10px] font-black uppercase tracking-widest">Disponível</span></div>
-                <button type="button" onClick={() => setEditingProduct({...editingProduct, isAvailable: !editingProduct.isAvailable})} className={`w-14 h-7 rounded-full relative transition-all ${editingProduct?.isAvailable ? 'bg-brand-green' : 'bg-red-400'}`}>
-                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${editingProduct?.isAvailable ? 'left-8' : 'left-1'}`}></div>
-                </button>
+                <button type="button" onClick={() => setEditingProduct({...editingProduct, isAvailable: !editingProduct.isAvailable})} className={`w-14 h-7 rounded-full relative transition-all ${editingProduct?.isAvailable ? 'bg-brand-green' : 'bg-red-400'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${editingProduct?.isAvailable ? 'left-8' : 'left-1'}`}></div></button>
               </div>
-
               <button type="submit" className="w-full bg-brand-dark text-brand-orange py-6 rounded-2xl font-black uppercase text-[11px] shadow-2xl active:scale-95 transition-all">Salvar Item</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL CATEGORIA */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-brand-dark/90 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative animate-in slide-in-from-bottom duration-300">
             <button onClick={() => setIsCategoryModalOpen(false)} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full active:scale-90 transition-all"><CloseIcon size={20}/></button>
-            <h3 className="text-xl font-black uppercase italic mb-8 tracking-widest text-brand-dark">Categorias</h3>
+            <h3 className="text-xl font-black uppercase italic mb-8 tracking-widest text-brand-dark leading-none">Categorias</h3>
             <div className="flex gap-2 mb-6"><input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nova..." className="flex-1 bg-gray-50 border-2 rounded-xl px-4 py-3 text-xs font-black uppercase outline-none focus:border-brand-orange"/><button onClick={handleAddCategory} className="bg-brand-dark text-brand-orange px-4 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">Add</button></div>
             <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">{categories.map(cat => (<div key={cat.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border shadow-sm"><span className="text-xs font-black uppercase">{cat.name}</span><button onClick={() => handleDeleteCategory(cat.name)} className="text-red-500 hover:scale-110 active:scale-90 transition-all"><TrashIcon size={18}/></button></div>))}</div>
           </div>
         </div>
       )}
 
-      {/* MODAL CUPOM */}
       {isCouponModalOpen && (
         <div className="fixed inset-0 z-[3100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
               <button onClick={() => setIsCouponModalOpen(false)} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full active:scale-90 transition-all"><CloseIcon size={20}/></button>
-              <h3 className="text-xl font-black uppercase italic mb-8 tracking-widest text-brand-dark">Configurar Cupom</h3>
+              <h3 className="text-xl font-black uppercase italic mb-8 tracking-widest text-brand-dark leading-none">Configurar Cupom</h3>
               <div className="space-y-4">
                  <input value={editingCoupon.code} onChange={e => setEditingCoupon({...editingCoupon, code: e.target.value})} placeholder="CÓDIGO (EX: MARMITA10)" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black uppercase outline-none focus:border-brand-orange" />
                  <input type="number" value={editingCoupon.percentage} onChange={e => setEditingCoupon({...editingCoupon, percentage: Number(e.target.value)})} placeholder="PERCENTUAL (%)" className="w-full bg-gray-50 border-2 rounded-xl px-5 py-4 text-xs font-black outline-none focus:border-brand-orange" />
@@ -670,6 +623,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                  )}
                  <button onClick={handleSaveCoupon} className="w-full bg-brand-dark text-brand-orange py-5 rounded-2xl font-black uppercase text-[10px] shadow-xl active:scale-95 transition-all">Salvar Cupom</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* DETALHES DO PEDIDO (MODAL) */}
+      {selectedOrderId && selectedOrder && (
+        <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
+           <div className="relative bg-white w-full max-w-2xl h-[85vh] rounded-[3rem] p-10 overflow-y-auto flex flex-col border-t-8 border-brand-orange shadow-2xl animate-in zoom-in duration-300 no-scrollbar">
+              <div className="flex justify-between items-start mb-6">
+                 <div><h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-brand-dark leading-none">{selectedOrder.currentOrder?.customerName}</h3><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">Pedido #{selectedOrder.currentOrder?.id}</p></div>
+                 <div className="flex gap-2">
+                    <button onClick={() => handlePrint(selectedOrder.currentOrder!)} className="bg-brand-dark text-brand-orange p-3 rounded-full hover:scale-110 shadow-lg transition-all"><PrinterIcon size={20}/></button>
+                    <button onClick={() => setSelectedOrderId(null)} className="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition-all"><CloseIcon size={24}/></button>
+                 </div>
+              </div>
+              <div className="flex-1 space-y-6">
+                 <div className="bg-gray-50 p-6 rounded-[2rem] border">
+                    <p className="text-[8px] font-black text-gray-400 mb-4 uppercase tracking-widest">Atualizar Status:</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                       {(['pending', 'preparing', 'ready', 'delivered'] as OrderStatus[]).map(s => (
+                          <button key={s} onClick={() => onUpdateTable(selectedOrder.id, 'occupied', { ...selectedOrder.currentOrder!, status: s })} className={`py-4 rounded-xl text-[8px] font-black uppercase border-2 transition-all ${selectedOrder.currentOrder?.status === s ? 'bg-brand-orange text-white border-brand-dark shadow-md' : 'bg-white text-gray-400 border-gray-100'}`}>{STATUS_CFG[s].label}</button>
+                       ))}
+                    </div>
+                 </div>
+                 <div className="space-y-3">
+                    <p className="text-[9px] font-black text-gray-400 uppercase ml-2">Itens do Pedido:</p>
+                    {selectedOrder.currentOrder?.items.map((item, idx) => (
+                       <div key={idx} className="flex items-center gap-4 bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
+                          <img src={item.image} onError={e => e.currentTarget.src='https://placehold.co/100x100'} className="w-14 h-14 rounded-xl object-cover" />
+                          <div className="flex-1"><p className="font-black text-[12px] uppercase leading-tight text-brand-dark">{item.name}</p><p className="text-[10px] font-bold text-gray-400">{item.quantity}x • R$ {item.price.toFixed(2)}</p></div>
+                          <span className="font-black italic text-brand-orange text-[14px]">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                       </div>
+                    ))}
+                 </div>
+                 {selectedOrder.currentOrder?.address && (
+                   <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                     <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">Endereço de Entrega:</p>
+                     <p className="text-[11px] font-bold text-blue-900 leading-relaxed uppercase">{selectedOrder.currentOrder.address}</p>
+                   </div>
+                 )}
+              </div>
+              <div className="pt-8 mt-8 border-t flex justify-between items-center bg-white sticky bottom-0">
+                 <div className="text-left"><p className="text-[10px] text-gray-400 font-black uppercase">Total</p><p className="text-4xl font-black italic tracking-tighter text-brand-dark">R$ {selectedOrder.currentOrder?.finalTotal.toFixed(2)}</p></div>
+                 <button onClick={() => handleCompleteOrder(selectedOrder)} className="bg-brand-green text-white px-12 py-6 rounded-2xl font-black uppercase text-[11px] shadow-2xl hover:brightness-110 active:scale-95 transition-all">Concluir ✅</button>
               </div>
            </div>
         </div>

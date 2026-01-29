@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, Order, Product, Category, Coupon, LoyaltyConfig, OrderStatus, StoreConfig, CartItem, LoyaltyUser } from '../types';
 import { CloseIcon, TrashIcon, VolumeIcon, EditIcon, PrinterIcon } from './Icons';
 import { supabase } from '../lib/supabase';
@@ -60,6 +60,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [loyalty, setLoyalty] = useState<LoyaltyConfig>({ isActive: false, spendingGoal: 100, scopeType: 'all', scopeValue: '' });
   const [loyaltyUsers, setLoyaltyUsers] = useState<LoyaltyUser[]>([]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (activeTab === 'marketing') fetchMarketing();
   }, [activeTab]);
@@ -73,8 +75,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     
     const { data: lConfig } = await supabase.from('loyalty_config').select('*').maybeSingle();
     if (lConfig) setLoyalty({ 
-      isActive: lConfig.is_active, spendingGoal: Number(lConfig.spending_goal), 
-      scopeType: lConfig.scope_type as any, scopeValue: lConfig.scope_value || '' 
+      isActive: lConfig.is_active, spending_goal: Number(lConfig.spending_goal), 
+      scope_type: lConfig.scope_type as any, scope_value: lConfig.scope_value || '' 
     });
     
     const { data: lUsers } = await supabase.from('loyalty_users').select('*').order('accumulated', { ascending: false });
@@ -84,6 +86,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         name: u.name || 'Cliente sem nome', 
         accumulated: Number(u.accumulated || 0) 
       })));
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("A imagem é muito grande. Escolha uma imagem com menos de 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditingProduct({ ...editingProduct, image: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -296,7 +313,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
-        {/* OUTRAS ABAS... */}
+        {/* ABA PRODUTOS */}
         {activeTab === 'menu' && (
           <div className="bg-white p-10 rounded-[4rem] shadow-xl border-t-8 border-brand-dark">
             <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
@@ -332,6 +349,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
+        {/* ABA MARKETING */}
         {activeTab === 'marketing' && (
           <div className="space-y-10">
             <div className="bg-white p-12 rounded-[3rem] shadow-xl border-t-8 border-brand-green">
@@ -434,7 +452,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
       </div>
 
-      {/* MODAIS */}
+      {/* MODAL DETALHES PEDIDO */}
       {selectedOrderId && selectedOrder && (
         <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
            <div className="relative bg-white w-full max-w-2xl h-[85vh] rounded-[3rem] p-10 overflow-y-auto flex flex-col border-t-8 border-brand-orange shadow-2xl animate-in zoom-in duration-300 no-scrollbar">
@@ -541,27 +559,72 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* MODAIS PRODUTO, CATEGORIA, CUPOM (MANTIDOS)... */}
+      {/* MODAL CONFIGURAR PRODUTO (UPLOAD DE IMAGEM) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-brand-dark/95 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[3rem] p-12 relative shadow-2xl overflow-y-auto max-h-[95vh] no-scrollbar">
             <button onClick={() => setIsProductModalOpen(false)} className="absolute top-6 right-6 p-3 bg-gray-100 rounded-full active:scale-90 transition-all"><CloseIcon size={20}/></button>
             <h3 className="text-2xl font-black italic mb-8 uppercase text-center tracking-tighter text-brand-dark">Configurar Marmita</h3>
+            
             <form onSubmit={(e) => { e.preventDefault(); onSaveProduct(editingProduct); setIsProductModalOpen(false); }} className="space-y-5">
+              
+              {/* AREA DE UPLOAD DE IMAGEM */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-gray-400 ml-2 tracking-widest">Foto da Marmita</p>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full aspect-video bg-gray-50 border-4 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-brand-orange/40 hover:bg-brand-orange/5 transition-all group overflow-hidden relative"
+                >
+                  {editingProduct?.image ? (
+                    <>
+                      <img src={editingProduct.image} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                        <span className="bg-white text-brand-dark px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-xl">Trocar Foto</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center p-8">
+                      <div className="bg-white text-brand-orange p-4 rounded-full shadow-md mb-4 inline-block">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4"/></svg>
+                      </div>
+                      <p className="font-black text-[10px] uppercase tracking-widest text-gray-400">Clique para selecionar foto</p>
+                    </div>
+                  )}
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImageUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </div>
+
               <input value={editingProduct?.name || ''} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} placeholder="NOME DO PRODUTO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase outline-none focus:border-brand-orange" required />
-              <input value={editingProduct?.image || ''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} placeholder="URL DA IMAGEM" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:border-brand-orange" />
+              
               <div className="grid grid-cols-2 gap-4">
                 <input type="number" step="0.01" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} placeholder="PREÇO" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black outline-none" required />
-                <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none">{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select>
+                <select value={editingProduct?.category || ''} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-[10px] font-black uppercase outline-none">
+                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
               </div>
+
               <textarea value={editingProduct?.description || ''} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} placeholder="DESCRIÇÃO / INGREDIENTES" className="w-full bg-gray-50 border-2 rounded-2xl px-6 py-4 text-xs font-black h-24 resize-none outline-none focus:border-brand-orange" />
-              <div className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-gray-200"><div><span className="text-[10px] font-black uppercase tracking-widest">Disponível</span></div><button type="button" onClick={() => setEditingProduct({...editingProduct, isAvailable: !editingProduct.isAvailable})} className={`w-14 h-7 rounded-full relative transition-all ${editingProduct?.isAvailable ? 'bg-brand-green' : 'bg-red-400'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${editingProduct?.isAvailable ? 'left-8' : 'left-1'}`}></div></button></div>
+              
+              <div className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-gray-200">
+                <div><span className="text-[10px] font-black uppercase tracking-widest">Disponível</span></div>
+                <button type="button" onClick={() => setEditingProduct({...editingProduct, isAvailable: !editingProduct.isAvailable})} className={`w-14 h-7 rounded-full relative transition-all ${editingProduct?.isAvailable ? 'bg-brand-green' : 'bg-red-400'}`}>
+                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${editingProduct?.isAvailable ? 'left-8' : 'left-1'}`}></div>
+                </button>
+              </div>
+
               <button type="submit" className="w-full bg-brand-dark text-brand-orange py-6 rounded-2xl font-black uppercase text-[11px] shadow-2xl active:scale-95 transition-all">Salvar Item</button>
             </form>
           </div>
         </div>
       )}
 
+      {/* MODAL CATEGORIA */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-brand-dark/90 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative animate-in slide-in-from-bottom duration-300">
@@ -573,6 +636,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
+      {/* MODAL CUPOM */}
       {isCouponModalOpen && (
         <div className="fixed inset-0 z-[3100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">

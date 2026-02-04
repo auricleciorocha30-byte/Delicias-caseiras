@@ -40,7 +40,6 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
 
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.price * item.quantity, 0), [items]);
   
-  // CORREÇÃO: Lógica de desconto por escopo (Todos, Categoria, Produto)
   const discount = useMemo(() => {
     if (appliedCoupons.length === 0) return 0;
     
@@ -49,7 +48,6 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
         if (!c.isActive) return false;
         if (c.scopeType === 'all') return true;
         
-        // Verificação exata para categoria ou produto
         if (c.scopeType === 'category') {
            return (c.scopeValue || '').toLowerCase().trim() === item.category.toLowerCase().trim();
         }
@@ -61,7 +59,6 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
 
       if (validCouponsForItem.length === 0) return totalDiscount;
       
-      // Pega o melhor cupom válido para este item específico
       const bestCoupon = validCouponsForItem.reduce((prev, curr) => (curr.percentage > prev.percentage) ? curr : prev);
       return totalDiscount + (item.price * item.quantity * (bestCoupon.percentage / 100));
     }, 0);
@@ -94,6 +91,13 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
   const handleCheckout = async () => {
     if (items.length === 0) return;
     if (!customerName.trim()) return alert('Informe seu nome para o pedido.');
+    
+    // WHATSAPP OBRIGATÓRIO
+    const phoneClean = customerPhone.replace(/\D/g, '');
+    if (!phoneClean || phoneClean.length < 8) {
+      return alert('O número do WhatsApp é obrigatório para processar o pedido.');
+    }
+
     if (orderType === 'delivery' && !address.trim()) return alert('Endereço completo é obrigatório para entregas.');
 
     setIsProcessing(true);
@@ -102,7 +106,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
     const newOrder: Order = {
       id: Math.random().toString(36).substr(2, 6).toUpperCase(),
       customerName, 
-      customerPhone: customerPhone.trim() || undefined,
+      customerPhone: customerPhone.trim(),
       items: [...items], 
       total: subtotal, 
       discount, 
@@ -156,7 +160,7 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
                     <div className="space-y-3">
                       <p className="text-[9px] tracking-[0.3em] text-[#666666] ml-2">Identificação</p>
                       <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="SEU NOME" className="w-full bg-white border-2 rounded-2xl px-6 py-5 text-xs outline-none focus:border-[#FF7F11]"/>
-                      <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="WHATSAPP (OPCIONAL)" className="w-full bg-white border-2 rounded-2xl px-6 py-5 text-xs outline-none focus:border-[#FF7F11]"/>
+                      <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="WHATSAPP (OBRIGATÓRIO)" className="w-full bg-white border-2 rounded-2xl px-6 py-5 text-xs outline-none focus:border-[#FF7F11]"/>
                     </div>
 
                     <div className="space-y-3">

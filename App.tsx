@@ -4,6 +4,7 @@ import HeaderComp from './components/Header';
 import MenuItem from './components/MenuItem';
 import Cart from './components/Cart';
 import AdminPanel from './components/AdminPanel';
+import StatusPanel from './components/StatusPanel';
 import { INITIAL_TABLES, STORE_INFO } from './constants';
 import { Product, CartItem, Table, Order, Category, Coupon, StoreConfig } from './types';
 import { supabase } from './lib/supabase';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isStatusPanelOpen, setIsStatusPanelOpen] = useState(false);
   
   const [tables, setTables] = useState<Table[]>(INITIAL_TABLES);
   const [menuItems, setMenuItems] = useState<Product[]>([]);
@@ -45,7 +47,7 @@ const App: React.FC = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({
-    tablesEnabled: false, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: false
+    tablesEnabled: false, deliveryEnabled: true, counterEnabled: true, statusPanelEnabled: true
   });
 
   const playDing = useCallback(() => {
@@ -58,7 +60,7 @@ const App: React.FC = () => {
 
       const playTone = (freq: number, start: number, duration: number) => {
         const oscillator = ctx.createOscillator();
-        const { gainNode } = { gainNode: ctx.createGain() }; // Fixed typo in local variable declaration if needed, but the logic remains
+        const gainNode = ctx.createGain();
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(freq, ctx.currentTime + start);
         gainNode.gain.setValueAtTime(0, ctx.currentTime + start);
@@ -89,10 +91,9 @@ const App: React.FC = () => {
 
     if (configRes.data) {
       setStoreConfig({
-        tablesEnabled: false,
+        tablesEnabled: configRes.data.tables_enabled,
         deliveryEnabled: configRes.data.delivery_enabled,
         counterEnabled: configRes.data.counter_enabled,
-        // Correcting status_panel_enabled to statusPanelEnabled
         statusPanelEnabled: configRes.data.status_panel_enabled
       });
     }
@@ -112,25 +113,22 @@ const App: React.FC = () => {
       const merged = [...INITIAL_TABLES];
       tableRes.data.forEach((dbT: any) => {
         const idx = merged.findIndex(t => t.id === dbT.id);
-        if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, current_order: dbT.current_order };
+        if (idx >= 0) merged[idx] = { id: dbT.id, status: dbT.status, currentOrder: dbT.current_order };
       });
       setTables(merged);
     }
     setDbStatus('ok');
   }, []);
 
-  // Monitoramento Realtime para novos pedidos
+  // Monitoramento Realtime para novos pedidos e status
   useEffect(() => {
-    if (!isLoggedIn) return;
-
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('public-status-changes')
       .on('postgres_changes', { event: '*', table: 'tables', schema: 'public' }, (payload) => {
         const newData = payload.new as any;
         const oldData = payload.old as any;
 
-        // Se uma mesa mudou de livre para ocupada, é um novo pedido
-        if (newData.status === 'occupied' && (!oldData || oldData.status === 'free')) {
+        if (isLoggedIn && newData.status === 'occupied' && (!oldData || oldData.status === 'free')) {
           playDing();
           setShowNewOrderAlert(true);
         }
@@ -159,13 +157,14 @@ const App: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'menu') setIsCustomerView(true);
-  }, []);
+    if (!isLoggedIn) fetchData(); // Fetch public data
+  }, [isLoggedIn, fetchData]);
 
   const handleUpdateStoreConfig = async (newCfg: StoreConfig) => {
     setStoreConfig(newCfg);
     await supabase.from('store_config').upsert({
       id: 1,
-      tables_enabled: false,
+      tables_enabled: newCfg.tablesEnabled,
       delivery_enabled: newCfg.deliveryEnabled,
       counter_enabled: newCfg.counterEnabled,
       status_panel_enabled: newCfg.statusPanelEnabled
@@ -178,6 +177,20 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-brand-cream flex flex-col font-sans">
         <HeaderComp />
         <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 relative z-20 flex-1 -mt-10 pb-40">
+          
+          {/* BOTÃO ACOMPANHE SEU PEDIDO */}
+          {storeConfig.statusPanelEnabled && (
+            <div className="mb-8 flex justify-center">
+              <button 
+                onClick={() => setIsStatusPanelOpen(true)}
+                className="bg-brand-dark text-white px-10 py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-2xl flex items-center gap-4 hover:scale-105 transition-all border-b-4 border-brand-orange"
+              >
+                <span className="w-3 h-3 bg-brand-orange rounded-full animate-ping"></span>
+                Acompanhe seu pedido em tempo real
+              </button>
+            </div>
+          )}
+
           {isStoreClosed ? (
             <div className="flex flex-col items-center justify-center pt-24 pb-32 text-center">
                <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-brand-orange max-w-md w-full">
@@ -208,6 +221,14 @@ const App: React.FC = () => {
           )}
         </main>
         <Footer />
+
+        {/* COMPONENTE DE STATUS PANEL */}
+        <StatusPanel 
+          isOpen={isStatusPanelOpen} 
+          onClose={() => setIsStatusPanelOpen(false)} 
+          orders={tables}
+        />
+
         {!isStoreClosed && cartItems.length > 0 && (
           <div className="fixed bottom-10 left-0 right-0 flex justify-center px-8 z-40">
             <button onClick={() => setIsCartOpen(true)} className="w-full max-w-lg bg-brand-dark text-white rounded-[3rem] p-6 flex items-center justify-between shadow-2xl ring-8 ring-brand-orange/20">

@@ -466,6 +466,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${storeConfig.counterEnabled ? 'left-9' : 'left-1'}`}></div>
                   </button>
                </div>
+               
+               {/* NOVO: PAINEL DE STATUS PÚBLICO */}
+               <div className="flex items-center justify-between p-6 md:p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 hover:border-brand-orange/30 transition-all">
+                  <div>
+                    <p className="font-black text-[13px] uppercase text-brand-dark">Painel de Status Público</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Permite clientes acompanharem pedidos</p>
+                  </div>
+                  <button onClick={() => onUpdateStoreConfig({...storeConfig, statusPanelEnabled: !storeConfig.statusPanelEnabled})} className={`w-16 h-8 rounded-full relative transition-all ${storeConfig.statusPanelEnabled ? 'bg-brand-orange shadow-inner' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${storeConfig.statusPanelEnabled ? 'left-9' : 'left-1'}`}></div>
+                  </button>
+               </div>
             </div>
             
             <div className="mt-12 pt-12 border-t text-center">
